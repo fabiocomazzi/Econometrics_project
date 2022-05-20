@@ -10,6 +10,6 @@ TO DO:
   - Apply unit root test (ADF) on first differences;
   - Apply Johansen cointegration test (Trace and Maximum Eigenvalue) to the two different models;
   - Estimate of the two VECM;
-  - Analyze the impulse respons functions.
+  - Analyze the impulse response functions.
 - undestand the results
 - apply other ideas from other papers to further the analysis 
