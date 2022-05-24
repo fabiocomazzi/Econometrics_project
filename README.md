@@ -13,3 +13,8 @@ TO DO:
   - Analyze the impulse response functions.
 - undestand the results
 - apply other ideas from other papers to further the analysis 
+
+In più:
+- Distributed lag model?
+- PCA?
+- Forecast?
