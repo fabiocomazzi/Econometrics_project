@@ -44,6 +44,9 @@ p8 <- ggplot(df, aes(x=Data, y=EURUSD_vol)) +
 
 p1+p2+p3+p4+p5+p6+p7+p8
 
+dev.new()
+p8
+dev.off()
 
 ################################################################################
 # LINEAR REGRESSION
