@@ -46,6 +46,7 @@ p1+p2+p3+p4+p5+p6+p7+p8
 
 dev.new()
 p8
+
 dev.off()
 
 ################################################################################
@@ -87,8 +88,6 @@ linearHypothesis(reg, rbind(c(0,0,0,0,1,0,0,0), c(0,0,0,0,0,1,0,0)), c(0,0))
 
 
 
-
-
 # Proviamo a togliere yieldEU_1y e HCIP
 reg <- lm(EURUSD_vol ~ EURUSD + M3 + MRO + ExtRes + RefOp, df)
 summary(reg)
@@ -101,11 +100,10 @@ ols_coll_diag(reg)
 #Tutti i VIF sono minori di 10, ma l'R^2 fa schifo (e anche il plot)
 
 
-##########################
-#TO DO:
-# DIVIDERE I DUE MODELLI COME FA NEL PAPER (FARANNO SCHIFO DI SICURO LO STESSO)
-# DISTRIBUTED LAG MODELS
-##########################
+
+###########################################
+# DIVIDIAMO I DUE MODELLI COME FA NEL PAPER
+###########################################
 
 
 
@@ -116,23 +114,14 @@ summary(reg)
 plot(df$Data, df$EURUSD_vol, type = "l")
 lines(df$Data, fitted(reg), col = "green")
 
-# MODELLO 1 CON EURUSD, HICP E RefOp in più
-reg <- lm(EURUSD_vol ~ M3 + MRO + EURUSD + HICP + RefOp, df)
+# MODELLO 1 CON ExtRes in più
+reg <- lm(EURUSD_vol ~ M3 + MRO + ExtRes, df)
 summary(reg)
 
 plot(df$Data, df$EURUSD_vol, type = "l")
 lines(df$Data, fitted(reg), col = "green")
 
-#R^2 uguale, R^2 adjusted più piccolo -> il secondo modello forse non aggiunge nulla
-
-# Facciamo il test
-
-# Test beta3 = 0, beta4 = 0, beta5 = 0 vs at least one != 0
-
-linearHypothesis(reg, rbind(c(0,0,0,1,0,0), c(0,0,0,0,1,0), c(0,0,0,0,0,1)), c(0,0,0))
-
-# p-value alto => non posso rifiutare H0 => (beta3, beta4, beta5) = (0,0,0)
-
+# Il modello migliora un po' -> si vede dal t-test che ExtRes è significativo
 
 
 
@@ -140,7 +129,7 @@ linearHypothesis(reg, rbind(c(0,0,0,1,0,0), c(0,0,0,0,1,0), c(0,0,0,0,0,1)), c(0
 ####### MODELLO 2
 
 # Modello del paper
-reg <- lm(EURUSD_vol ~ yieldEU_1y + ExtRes, df) #come paper
+reg <- lm(EURUSD_vol ~ yieldEU_1y + EURUSD, df) #come paper
 summary(reg)
 
 plot(df$Data, df$EURUSD_vol, type = "l")
@@ -148,7 +137,7 @@ lines(df$Data, fitted(reg), col = "green")
 
 
 # Modello del paper più nostre features
-reg <- lm(EURUSD_vol ~ yieldEU_1y + ExtRes + EURUSD + HICP + RefOp, df) #paper più nostre variabili
+reg <- lm(EURUSD_vol ~ yieldEU_1y + EURUSD + HICP + RefOp, df) #paper più nostre variabili
 summary(reg)
 
 plot(df$Data, df$EURUSD_vol, type = "l")
@@ -156,38 +145,9 @@ lines(df$Data, fitted(reg), col = "green")
 
 #Qui il modello migliora abbastanza -> per vedere se almeno una delle features che abbiamo inserito sono significative
 
-linearHypothesis(reg, rbind(c(0,0,0,1,0,0), c(0,0,0,0,1,0), c(0,0,0,0,0,1)), c(0,0,0))
+linearHypothesis(reg, rbind(c(0,0,0,1,0), c(0,0,0,0,1)), c(0,0))
 
-# => p-value basso => almeno una di quelle è significativa
-
-
-
-# yield e HCIP sembrano non significative singolarmente -> facciamo il test congiunto
-
-# Test H0: (beta1, beta4) = 0 vs (beta1, beta4) != 0
-linearHypothesis(reg, rbind(c(0,1,0,0,0,0), c(0,0,0,0,1,0)), c(0,0))
-
-# pvalue alto => tolgo entrambe dal modello
-
-
-reg <- lm(EURUSD_vol ~ ExtRes + EURUSD + RefOp, df) #paper più nostre variabili
-summary(reg)
-
-
-# ora tutte le variabili sono significative
-
-plot(df$Data, df$EURUSD_vol, type = "l")
-lines(df$Data, fitted(reg), col = "green")
-
-
-# Controlliamo il VIF
-
-ols_coll_diag(reg)
-
-#Nessun VIF sopra 8
-
-
-# In generale, dai plot si vede che la regressione fa schifo
+# => p-value alto => al 5% accetto H0 => le rifiuto entrambe
 
 
 
@@ -341,7 +301,7 @@ adf.test(as.matrix(df$dRefOp))
 ################################################################################
 
 
-#PRIMO MODELLO 
+########## PRIMO MODELLO #######################################################
 
 library(vars)
 
@@ -349,7 +309,7 @@ y.VAR.IC <- VARselect(df[c("EURUSD_vol", "M3", "MRO")], type="const")
 nlags <- y.VAR.IC$selection["SC(n)"]
 nlags
 
-#Dice di usare due lag (non ho capito bene questa cosa)
+#Dice di usare due lag
 
 
 y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO")], type="trace", K=2)
@@ -362,39 +322,71 @@ summary(y.CA)
 
 
 
+########### PRIMO MODELLO + ExtRes #############################################
 
-#SECONDO MODELLO
-
-y.VAR.IC <- VARselect(df[c("EURUSD_vol", "ExtRes", "EURUSD", "RefOp")], type="const")
+y.VAR.IC <- VARselect(df[c("EURUSD_vol", "M3", "MRO", "ExtRes")], type="const")
 nlags <- y.VAR.IC$selection["SC(n)"]
 nlags
 
-#Dice di usare due lag (non ho capito bene questa cosa)
+#Dice di usare un lag -> ne usiamo due lo stesso e sta anche un po' zitto
 
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "ExtRes", "EURUSD", "RefOp")], type="trace", K=2)
+y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO", "ExtRes")], type="trace", K=2)
 summary(y.CA)
 
-# Accettiamo r = 2 => Due equazioni di cointegrazione
+# Una relazione di cointegrazione => ExtRes non aggiunge relazioni di cointegrazione
 
 
 
 
-# Provo a mettere tutte le features:
+################################################################################
+
+############ SECONDO MODELLO ###################################################
+
+y.VAR.IC <- VARselect(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD")], type="const")
+nlags <- y.VAR.IC$selection["SC(n)"]
+nlags
+
+#Dice di usare due lag
+
+
+y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD")], type="trace", K=2)
+summary(y.CA)
+
+# Una relazione di cointegrazione
+
+
+
+
+############# SECONDO MODELLO + RefOp e HICP ###################################
+
+y.VAR.IC <- VARselect(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD", "RefOp", "HICP")], type="const")
+nlags <- y.VAR.IC$selection["SC(n)"]
+nlags
+
+#Dice di usare un lag -> ne usiamo due e ce ne sbattiamo
+
+y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "ExtRes", "EURUSD", "RefOp", "HICP")], type="trace", K=2)
+summary(y.CA)
+
+# Al 5% e 1% accettiamo una relazione di cointegrazione
+
+
+
+
+############### MODELLO MISCHIONE
 
 y.VAR.IC <- VARselect(df[c("EURUSD_vol", "M3", "MRO", "yieldEU_1y", "HICP", "ExtRes", "EURUSD", "RefOp")], type="const")
 nlags <- y.VAR.IC$selection["SC(n)"]
 nlags
 
-#Dice di usare due lag (non ho capito bene questa cosa)
+#Dice di usare un lag
 
 
 y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO", "yieldEU_1y", "HICP", "ExtRes", "EURUSD", "RefOp")], type="trace", K=2)
 summary(y.CA)
 
 # Accettiamo r = 3 => Tre equazioni di cointegrazione
-
-
 
 
 
