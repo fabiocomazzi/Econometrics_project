@@ -246,6 +246,9 @@ summary(ur.ers(df$dRefOp, type="P-test", model="trend"))
 
 
 
+
+
+
 ############### ADF TEST
 
 # H0: non stationary
@@ -268,6 +271,7 @@ adf.test(as.matrix(df$yieldEU_1y))
 adf.test(as.matrix(df$ExtRes)) # Con drift e trend con qualche lag rifiuto H0
 adf.test(as.matrix(df$RefOp)) # Con drift e trend rifiuto sempre H0
 adf.test(as.matrix(df$EURUSD_vol)) # Quasi sempre stat
+
 
 
 # PROBLEMA: ExtRes, RefOp e EURUSD_vol sono stazionari: come possiamo imporre la cointegrazione?
@@ -312,12 +316,24 @@ nlags
 #Dice di usare due lag
 
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO")], type="trace", K=2)
+y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO")], type="trace", ecdet = "const", spec="longrun", K=2)
 summary(y.CA)
+
+
+# Accettiamo cointegrazione con r = 1 => un'equazione di cointegrazione
+
+
+plot(df$EURUSD_vol, type = "l")
+lines(1.000*df$EURUSD_vol + 0.0006483369*df$M3 -0.0024*df$MRO, col = "green")
+
+# merda, stiamo cannando tutto
+
 
 # Statistica più grande dei valori cruciali => rifiutiamo H0 (quindi la cosa che c'è scritta a sinistra)
 
-# Accettiamo cointegrazione con r = 1 => un'equazione di cointegrazione
+
+# r DICE CHE LA COMBINAZIONE LINEARE DI r TIME SERIES Dà UNA SERIE STAZIONARIA
+# => SE r = 1, BASTA SOLO EURUSD_vol => NON STIAMO TROVANDO UN EMERITO CAZZO
 
 
 
@@ -325,18 +341,19 @@ summary(y.CA)
 ########### PRIMO MODELLO + ExtRes #############################################
 
 y.VAR.IC <- VARselect(df[c("EURUSD_vol", "M3", "MRO", "ExtRes")], type="const")
-nlags <- y.VAR.IC$selection["SC(n)"]
+nlags <- y.VAR.IC$selection
 nlags
 
 #Dice di usare un lag -> ne usiamo due lo stesso e sta anche un po' zitto
 
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO", "ExtRes")], type="trace", K=2)
+y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO", "ExtRes")], type="trace", K=3, spec="longrun", ecdet = "const")
 summary(y.CA)
 
 # Una relazione di cointegrazione => ExtRes non aggiunge relazioni di cointegrazione
 
-
+vecm<-cajorls(y.CA, r = 1)
+vecm
 
 
 ################################################################################
@@ -350,7 +367,7 @@ nlags
 #Dice di usare due lag
 
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD")], type="trace", K=2)
+y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD")], type="trace", K=2, spec="longrun")
 summary(y.CA)
 
 # Una relazione di cointegrazione
@@ -361,14 +378,16 @@ summary(y.CA)
 ############# SECONDO MODELLO + RefOp e HICP ###################################
 
 y.VAR.IC <- VARselect(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD", "RefOp", "HICP")], type="const")
-nlags <- y.VAR.IC$selection["SC(n)"]
+nlags <- y.VAR.IC$selection
 nlags
 
 #Dice di usare un lag -> ne usiamo due e ce ne sbattiamo
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "ExtRes", "EURUSD", "RefOp", "HICP")], type="trace", K=2)
+y.CA <- ca.jo(df[c("EURUSD_vol", "yieldEU_1y", "EURUSD", "RefOp", "HICP")], type="trace", K=3,spec="longrun")
 summary(y.CA)
 
+vecm<-cajorls(y.CA, r = 1)
+vecm
 # Al 5% e 1% accettiamo una relazione di cointegrazione
 
 
@@ -376,17 +395,82 @@ summary(y.CA)
 
 ############### MODELLO MISCHIONE
 
-y.VAR.IC <- VARselect(df[c("EURUSD_vol", "M3", "MRO", "yieldEU_1y", "HICP", "ExtRes", "EURUSD", "RefOp")], type="const")
+y.VAR.IC <- VARselect(df[c("M3", "MRO", "HICP", "ExtRes", "EURUSD")], type="const")
 nlags <- y.VAR.IC$selection["SC(n)"]
 nlags
 
 #Dice di usare un lag
 
 
-y.CA <- ca.jo(df[c("EURUSD_vol", "M3", "MRO", "yieldEU_1y", "HICP", "ExtRes", "EURUSD", "RefOp")], type="trace", K=2)
+y.CA <- ca.jo(df[c( "M3", "MRO", "HICP", "ExtRes", "EURUSD")], type="trace", K=2, spec="longrun")
 summary(y.CA)
 
 # Accettiamo r = 3 => Tre equazioni di cointegrazione
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### MODELLO 1 CRISI
+
+volatilità_crisi = df$EURUSD_vol[30:51]
+plot(volatilità_crisi, type = "l")
+
+adf.test(as.matrix(volatilità_crisi))
+
+M3 = df$M3[30:51]
+MRO = df$MRO[30:51]
+ExtRes = df$ExtRes[30:51]
+
+
+y.VAR.IC <- VARselect(cbind(volatilità_crisi, M3, MRO, ExtRes), type="const")
+nlags <- y.VAR.IC$selection
+nlags
+
+
+y.CA <- ca.jo(cbind(volatilità_crisi, M3, MRO, ExtRes), type="trace", K=3, spec="longrun", ecdet = "const")
+summary(y.CA)
+
+vecm<-cajorls(y.CA, r = 2)
+vecm
+
+plot(5.401592e-02 * MRO -2.010420e-06*ExtRes -1.656763e-01, type = "l")
+lines(5.401592e-02 * MRO -2.010420e-06*ExtRes -1.656763e-01 + volatilità_crisi, col = "green")
+
+
+
+#### MODELLO 2 CRISI
+
+#"yieldEU_1y", "ExtRes", "EURUSD", "RefOp", "HICP"
+
+
+yieldEU_1y = df$yieldEU_1y[30:51]
+EURUSD = df$EURUSD[30:51]
+RefOp = df$RefOp[30:51]
+HICP = df$HICP[30:51]
+
+y.VAR.IC <- VARselect(cbind(volatilità_crisi, EURUSD, yieldEU_1y, HICP), type="const")
+nlags <- y.VAR.IC$selection
+nlags
+
+y.CA <- ca.jo(cbind(volatilità_crisi, EURUSD, yieldEU_1y, HICP), type="trace", K=3, spec="longrun", ecdet = "const")
+summary(y.CA)
+
+vecm<-cajorls(y.CA, r = 3)
+vecm
+
+
 
 
 
