@@ -14,8 +14,6 @@ df_1 = read.csv("MABMM301USM189S.csv")
 df$M3_USA = df_1$MABMM301USM189S
 df_1 = read.csv("DGS1.csv")
 df$yieldUSA_1y = df_1$DGS1
-df_1 = read.csv("T5YIE.csv")
-df$HICP_USA = df_1$T5YIE
 df_1 = read.csv("DCOILWTICO.csv")
 df_1 <- head(df_1, -1) 
 df$Petrol_USA = df_1$DCOILWTICO
