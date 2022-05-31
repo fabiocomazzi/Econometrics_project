@@ -138,14 +138,14 @@ p5 <- ggplot(df, aes(x=Data, y=dyield)) +
 p6 <- ggplot(df, aes(x=Data, y=dExtRes)) +
   geom_line() + 
   xlab("")
-p7 <- ggplot(df, aes(x=Data, y=dRefOp)) +
-  geom_line() + 
-  xlab("")
+#p7 <- ggplot(df, aes(x=Data, y=dRefOp)) +
+#  geom_line() + 
+#  xlab("")
 p8 <- ggplot(df, aes(x=Data, y=EURUSD_vol)) +
   geom_line() + 
   xlab("")
 
-p1+p2+p3+p4+p5+p6+p7+p8
+p1+p2+p3+p4+p5+p6+p8
 
 
 # Calcolo l'ERS test
@@ -315,9 +315,11 @@ summary(mod_arch)
 ############################### APPLICHIAMO IL MODELLO
 
 library(rugarch)
+ecb_action = c(0,as.numeric( as.logical(diff(df$MRO))))
 
-spec = ugarchspec(variance.model=list(model = "eGARCH", garchOrder = c(0,1), external.regressors = as.matrix(dummy)), 
-                  distribution.model="std", mean.model=list(armaOrder=c(0,0), include.mean = TRUE))
+external_data = cbind(ecb_action, ecb_action.l1, ecb_action.l2, ecb_action.l3)
+spec = ugarchspec(variance.model=list(model = "eGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_action)), 
+                  distribution.model="std", mean.model=list(armaOrder=c(0,0), include.mean = FALSE))
 
 fit = ugarchfit(spec=spec, data=res)
 fit
@@ -352,3 +354,30 @@ summary(arch.fit)
 
 plot(arch.fit@fitted, type = "l")
 
+##############MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
+library(forecast)
+EURUSD = ts(df$EURUSD, frequency = 12, start=c(2004,10), end=c(2022,3))
+plot(diff(EURUSD), type = "l")
+acf(diff(EURUSD))
+pacf(diff(EURUSD))
+mod = auto.arima(EURUSD, d=1) #modello selezionato è arima (1,1,0)
+
+summary(lm(diff(EURUSD) ~ c(tail(diff(EURUSD),-1),0)))
+#mod = arima(EURUSD, order=c(1,1,0))
+plot(EURUSD, type='l')
+lines(mod$fitted, col='green')
+pacf(mod$residuals)
+
+ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
+ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
+ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
+dummy = as.numeric(as.logical(diff(df$MRO)))
+dummy = c(0,dummy)
+
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy)), 
+                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = TRUE))
+
+fit = ugarchfit(spec=spec, data=diff(EURUSD))
+#fit = ugarchfit(spec=spec, data=mod$residuals)
+fit
+####Le decisioni di politica monetaria non sembrano influenzare la volatilità del cambio EURUSD
