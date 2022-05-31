@@ -12,6 +12,29 @@ library("olsrr")
 # Import the dataset
 
 df = read_excel("dataset.xlsx")
+df_1 = read.csv("MABMM301USM189S.csv")
+df$M3_USA = df_1$MABMM301USM189S
+df_1 = read.csv("DGS1.csv")
+df$yieldUSA_1y = df_1$DGS1
+df_1 = read.csv("DCOILWTICO.csv")
+df_1 <- head(df_1, -1) 
+df$Petrol_USA = df_1$DCOILWTICO
+inf_df = read.table("inf_rate.txt", sep = "")
+
+inf_rate = inf_df[2:(length(inf_df)-1)]
+
+d = c()
+for (i in 1: 19)
+{
+  d = c(d, inf_rate[20-i,])
+}
+
+d = d[10:(length(d)-9)]
+d
+
+d = as.numeric(d)
+df$inf_USA = d
+
 
 
 
@@ -56,7 +79,7 @@ dev.off()
 
 # Linear regression with all the variables
 
-reg <- lm(EURUSD_vol ~ EURUSD + M3 + HICP + yieldEU_1y + MRO + ExtRes + RefOp, df)
+reg <- lm(EURUSD_vol ~ EURUSD + M3 + HICP + yieldEU_1y + MRO + ExtRes + RefOp + M3_USA + yieldUSA_1y + Petrol_USA + inf_USA, df)
 summary(reg)
 
 plot(df$Data, df$EURUSD_vol, type = "l")

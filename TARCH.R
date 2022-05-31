@@ -17,7 +17,7 @@ df$yieldUSA_1y = df_1$DGS1
 df_1 = read.csv("DCOILWTICO.csv")
 df_1 <- head(df_1, -1) 
 df$Petrol_USA = df_1$DCOILWTICO
-
+inf_df = read.table("inf_rate.txt", sep = "")
 
 inf_rate = inf_df[2:(length(inf_df)-1)]
 
@@ -207,8 +207,6 @@ adf.test(as.matrix(df$dyieldUSA))
 
 
 
-##### I processi vengono segnati stazionari ma le varianze non sembrano molto costanti
-# Further analysis?
 
 
 
@@ -240,12 +238,31 @@ res
 
 plot(res^2, type = "l")
 
+plot(res, type = "l")
 
 
+
+
+
+################################################################################
+# ACF E PACF
+################################################################################
+
+plot(acf(df$EURUSD, 12, xlim=c(1,12)))
+plot(acf(df$EURUSD, 12, type = "partial", xlim = c(1,12)))
+
+plot(acf(res, 12, xlim=c(1,12)))
+plot(acf(res, 12, type = "partial", xlim = c(1,12)))
+
+hist(res, breaks = 20) #leptokurtic
+
+shapiro.test(res) # rifiutiamo H0 al 5% => non è normale
 
 ################################################################################
 # TGARCH
 ################################################################################
+
+
 
 
 # Creation of dummy variable
@@ -265,14 +282,43 @@ plot(df$MRO, type = "l")
 lines(dummy, col = "green")
 
 
-df$ECB_action = dummy
+df$ECB_action = as.data.frame(dummy)
 
+
+
+################################################################################
+
+
+
+library(dynlm)
+
+
+# Facciamo un test per vedere se i nostri residui hanno un ARCH effect (LM test)
+
+library(FinTS)
+ArchTest(res, lag = 2, demean = TRUE) # con un lag non viene significativo, boh
+
+
+# Altro modo per fare lo stesso test -> decido io il numero di lags
+
+res_adj = c(0,0,res)
+length(res_adj)
+
+res_adj_sq = ts(res_adj^2)
+
+mod_arch = dynlm(res_adj_sq ~ L(res_adj_sq) + L(res_adj_sq, 2))
+summary(mod_arch)
+
+
+
+
+############################### APPLICHIAMO IL MODELLO
 
 library(rugarch)
 
 spec = ugarchspec(variance.model=list(model = "eGARCH", garchOrder = c(0,1), external.regressors = as.matrix(dummy)), 
                   distribution.model="std", mean.model=list(armaOrder=c(0,0), include.mean = TRUE))
-                  
+
 fit = ugarchfit(spec=spec, data=res)
 fit
 
@@ -284,7 +330,25 @@ fit@fit$fitted.values
 mean(res)
 
 
+#tGARCH
+
+garchMod <- ugarchspec(variance.model=list(model="fGARCH",
+                                           garchOrder=c(2,2),
+                                           submodel="TGARCH",
+                                           external.regressors = as.matrix(dummy)),
+                       mean.model=list(armaOrder=c(0,0)), 
+                       distribution.model="std")
+garchFit <- ugarchfit(spec=garchMod, data=res_adj)
+coef(garchFit)
+
+garchFit
 
 
+############### Altra libreria
 
+library(fGarch)
+arch.fit <- garchFit(~garch(1,1), data = res_adj)
+summary(arch.fit)
+
+plot(arch.fit@fitted, type = "l")
 
