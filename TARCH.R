@@ -101,21 +101,29 @@ dEURUSD = diff(df$EURUSD)
 dM3 = diff(df$M3)
 dHICP = diff(df$HICP)
 dMRO = diff(df$MRO)
-dyield = diff(df$yieldEU_1y)
+dyieldEU = diff(df$yieldEU_1y)
 dExtRes = diff(df$ExtRes)
 dM3_USA = diff(df$M3_USA)
 dyieldUSA = diff(df$yieldUSA_1y)
+dinf_USA = diff(df$inf_USA)
+dPetrol_USA = diff(df$Petrol_USA)
+yield_diff = df$yieldUSA_1y - df$yieldEU_1y
 
 # Inserisco le differenze nel dataset
 
-df$dEURUSD = c(0, dEURUSD)
-df$dM3 = c(0, dM3)
-df$dHICP = c(0, dHICP)
-df$dMRO = c(0, dMRO)
-df$dyield = c(0, dyield)
-df$dExtRes = c(0, dExtRes)
-df$dM3_USA = c(0, dM3_USA)
-df$dyieldUSA = c(0, dyieldUSA)
+df$dEURUSD = c(NA, dEURUSD)
+df$dM3 = c(NA, dM3)
+df$dHICP = c(NA, dHICP)
+df$dMRO = c(NA, dMRO)
+df$dyieldEU = c(NA, dyieldEU)
+df$dExtRes = c(NA, dExtRes)
+df$dM3_USA = c(NA, dM3_USA)
+df$dyieldUSA = c(NA, dyieldUSA)
+df$dinf_USA = c(NA, dinf_USA)
+df$dPetrol_USA = c(NA, dPetrol_USA)
+
+df$yield_diff = yield_diff
+df$dyield_diff = c(NA, diff(df$yield_diff))
 
 
 # Plottiamo le differenze
@@ -132,7 +140,7 @@ p3 <- ggplot(df, aes(x=Data, y=dHICP)) +
 p4 <- ggplot(df, aes(x=Data, y=dMRO)) +
   geom_line() + 
   xlab("")
-p5 <- ggplot(df, aes(x=Data, y=dyield)) +
+p5 <- ggplot(df, aes(x=Data, y=dyieldEU)) +
   geom_line() + 
   xlab("")
 p6 <- ggplot(df, aes(x=Data, y=dExtRes)) +
@@ -145,7 +153,20 @@ p8 <- ggplot(df, aes(x=Data, y=EURUSD_vol)) +
   geom_line() + 
   xlab("")
 
-p1+p2+p3+p4+p5+p6+p8
+p9 <- ggplot(df, aes(x=Data, y=yield_diff)) + 
+  geom_line() +
+  xlab("")
+
+p10 <- ggplot(df, aes(x=Data, y=dyield_diff)) + 
+  geom_line() +
+  xlab("")
+
+p11 <- ggplot(df, aes(x=Data, y=dinf_USA)) + 
+  geom_line() +
+  xlab("")
+
+
+p1+p2+p3+p4+p5+p6+p8+p9+p10+p11
 
 
 # Calcolo l'ERS test
@@ -154,7 +175,7 @@ summary(ur.ers(df$dEURUSD, type="P-test", model="trend"))
 summary(ur.ers(df$dM3, type="P-test", model="trend")) 
 summary(ur.ers(df$dHICP, type="P-test", model="trend")) 
 summary(ur.ers(df$dMRO, type="P-test", model="trend")) 
-summary(ur.ers(df$dyield, type="P-test", model="trend")) 
+summary(ur.ers(df$dyieldEU, type="P-test", model="trend")) 
 summary(ur.ers(df$dExtRes, type="P-test", model="trend")) 
 summary(ur.ers(df$dRefOp, type="P-test", model="trend")) 
 
@@ -198,21 +219,37 @@ adf.test(as.matrix(df$dEURUSD))
 adf.test(as.matrix(df$dM3))
 adf.test(as.matrix(df$dHICP))
 adf.test(as.matrix(df$dMRO))
-adf.test(as.matrix(df$dyield))
+adf.test(as.matrix(df$dyieldEU))
 adf.test(as.matrix(df$dExtRes))
 adf.test(as.matrix(df$dM3_USA)) 
 adf.test(as.matrix(df$dyieldUSA)) 
 
 # Vengono tutti stazionari, ovviamente
 
+###############################################################################
+#Siccome tutte le variabili sono I(1) la regressione sulle variabili originarie
+#non ha senso a meno che non siano cointegrate (relazioni spurie) -> regressione
+#serie differenziate
 
 
+reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+summary(reg)
 
+acf(reg$residuals)
+pacf(reg$residuals)
+shapiro.test(reg$residuals)
+#la regressione non è malaccio, R^2 del 28%, i residui sono normali, e non sembra esserci autocorrelazione quindi c'è consistenza
+# MRO e M3 non viene significativo quindi li scartiamo
 
+reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+summary(reg)
 
-
+acf(reg$residuals)
+pacf(reg$residuals)
+shapiro.test(reg$residuals)
 
 ################################################################################
+#Analizziamo ora le correlazioni di lungo termine
 
 library(vars)
 
@@ -240,9 +277,47 @@ plot(res^2, type = "l")
 
 plot(res, type = "l")
 
+################consideriamo la differenza dei tassi tra europa e america
+
+y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yield_diff", "HICP", "ExtRes", "Petrol_USA", "inf_USA")], type="const")
+nlags <- y.VAR.IC$selection
+nlags
+
+#Dice di usare due lag
 
 
+y.CA <- ca.jo(df[c("EURUSD", "M3", "yield_diff", "HICP", "ExtRes", "Petrol_USA", "inf_USA")], type="trace", ecdet = "const", spec="longrun", K=2)
+summary(y.CA)
 
+vecm<-cajorls(y.CA, r = 1)
+vecm
+
+
+summary(vecm$rlm)
+
+
+res = vecm$rlm$residuals[,1]
+
+
+plot(res^2, type='l')
+
+shapiro.test(res)
+acf(res^2)
+pacf(res^2)
+
+# le relazioni di cointegrazione sono 1 ed è super significativa per spiegare andamento tasso di cambio
+# le relazioni di short term significative sono invece riguardanti external reserve, prezzo petrolio, è inflazione usa
+# R^2 è uguale a 28.75% ma è paragonabile ai risultati di semplice regressione
+# inflazione EU invece non sembra particolarmente significativa
+
+#i residui di questo modello sono ben centrati, no autocorrelazione etc.
+#usiamo la volatilità di questi residui per studiare la volatilità del tasso di cambio
+#è la nostra alternativa alla semplice volatilità del sliding windows
+
+plot(df$EURUSD_vol, type='l')
+lines(res^2, col = "red")
+
+df$EURUSD_vol_cointegration = c(NA,NA, res^2)
 
 ################################################################################
 # ACF E PACF
@@ -259,30 +334,25 @@ hist(res, breaks = 20) #leptokurtic
 shapiro.test(res) # rifiutiamo H0 al 5% => non è normale
 
 ################################################################################
-# TGARCH
+# Modelliamo la volatilità con 3 approcci:
+# - volatilità intesa come volatilità mensile
+# - volatilità come i residui del nostro modello di cointegrazione
+# - modelliamo il tasso di interesse direttamente con un ARIMA in media e GARCH in varianza
+# l'idea è di vedere se politiche di aumento o diminuzione dei tassi possono influenzare la volatilità
 ################################################################################
 
 
 
 
 # Creation of dummy variable
-dummy = c(0)
-for(i in 2:nrow(df)) 
-{
-  if (df$MRO[i]-df$MRO[i-1]) {
-  d = 1 
-  } else {
-  d = 0
-  }
-  dummy = c(dummy,d)
-}
 
-
+dummy = as.numeric(as.logical(diff(df$MRO)))
+dummy = c(NA, dummy)
 plot(df$MRO, type = "l")
 lines(dummy, col = "green")
 
 
-df$ECB_action = as.data.frame(dummy)
+df$ECB_MROaction = as.data.frame(dummy)
 
 
 
@@ -312,16 +382,23 @@ summary(mod_arch)
 
 
 
-############################### APPLICHIAMO IL MODELLO
+#########################################################
+# approccio 1: vediamo se a decisioni della banca centrale 
+# per abbassare o alzare tassi corrisponde volatilità maggiore
+# nel nostro modello di cointegrazione
+# Interpretazione: abbiamo un modello che spiega abbastanza bene il cambio 
+# ----> vediamo se decisioni di politica monetaria danno scossoni non previsti dal modello
+# modelliamo i residui come se fossere una serie temporale a media nulla
+# e ammettiamo un modello GARCH con regressori esterni
 
 library(rugarch)
-ecb_action = c(0,as.numeric( as.logical(diff(df$MRO))))
+ecb_action = c(as.numeric( as.logical(diff(df$MRO))))
 
-external_data = cbind(ecb_action, ecb_action.l1, ecb_action.l2, ecb_action.l3)
-spec = ugarchspec(variance.model=list(model = "eGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_action)), 
+#external_data = cbind(ecb_action, ecb_action.l1, ecb_action.l2, ecb_action.l3)
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_action)), 
                   distribution.model="std", mean.model=list(armaOrder=c(0,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=res)
+fit = ugarchfit(spec=spec, data=res[1:length(res)])
 fit
 
 
@@ -329,32 +406,35 @@ fit@fit$coef
 
 fit@fit$fitted.values
 
-mean(res)
+# gli effetti del cambio dei tassi non si vedono minimamente nella varianza
 
 
-#tGARCH
 
-garchMod <- ugarchspec(variance.model=list(model="fGARCH",
-                                           garchOrder=c(2,2),
-                                           submodel="TGARCH",
-                                           external.regressors = as.matrix(dummy)),
-                       mean.model=list(armaOrder=c(0,0)), 
-                       distribution.model="std")
-garchFit <- ugarchfit(spec=garchMod, data=res_adj)
-coef(garchFit)
+# #tGARCH
+# 
+# garchMod <- ugarchspec(variance.model=list(model="fGARCH",
+#                                            garchOrder=c(2,2),
+#                                            submodel="TGARCH",
+#                                            external.regressors = as.matrix(dummy)),
+#                        mean.model=list(armaOrder=c(0,0)), 
+#                        distribution.model="std")
+# garchFit <- ugarchfit(spec=garchMod, data=res_adj)
+# coef(garchFit)
+# 
+# garchFit
+# 
+# 
+# ############### Altra libreria
+# 
+# library(fGarch)
+# arch.fit <- garchFit(~garch(1,1), data = res_adj)
+# summary(arch.fit)
+# 
+# plot(arch.fit@fitted, type = "l")
 
-garchFit
+####################################################################
+#approccio 2: MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
 
-
-############### Altra libreria
-
-library(fGarch)
-arch.fit <- garchFit(~garch(1,1), data = res_adj)
-summary(arch.fit)
-
-plot(arch.fit@fitted, type = "l")
-
-##############MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
 library(forecast)
 EURUSD = ts(df$EURUSD, frequency = 12, start=c(2004,10), end=c(2022,3))
 plot(diff(log(EURUSD)), type = "l")
@@ -362,27 +442,30 @@ acf(diff(EURUSD))
 pacf(diff(EURUSD))
 mod = auto.arima(log(EURUSD), d=1) #modello selezionato è arima (1,1,0)
 mod
-summary(lm(diff(log(EURUSD)) ~ c(tail(diff(log(EURUSD)),-1),0)))#la media non è significativa quindi la toglieremo
+summary(lm(diff(log(EURUSD)) ~ c(tail(diff(log(EURUSD)),-1),0)))#la media non è significativa quindi la toglieremo del modello
 
 plot(EURUSD, type='l')
 lines(exp(mod$fitted), col='green')
 pacf(mod$residuals)
 
-ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
-ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
-ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
-dummy = as.numeric(as.logical(diff(df$MRO)))
-dummy.a1 = c(0, dummy[1:(length(dummy)-1)])
-dummy.l1 = c(tail(dummy, -1), 0)
+# ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
+# ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
+# ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
+# dummy = as.numeric(as.logical(diff(df$MRO)))
+# dummy.a1 = c(0, dummy[1:(length(dummy)-1)])
+# dummy.l1 = c(tail(dummy, -1), 0)
 
-spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy)), 
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(tail(ecb_action, -1))), 
                   distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=diff(log(EURUSD)))
+fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
 
 fit
 ####le decisioni di politica monetaria non sembrano avere un significativa influenza sulla volatilità della politica monetaria
-####unico effetto apprezzabile riguarda se c'è stato o meno un ritocco dei tassi MRO nel mese corrente p-value comunque basso
+####unico effetto apprezzabile riguarda se c'è stato o meno un ritocco dei tassi MRO nel mese corrente ma c'è poca significatività
+
+########################################################################
+# approccio 3: Modelliamo direttamente la volatilità mensile tramite modelli ARMA
 
 plot(df$EURUSD_vol, type='l')
 acf(df$EURUSD_vol)
@@ -394,8 +477,8 @@ mod0
 mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)))
 mod1
 1-mod1$sigma2/var(df$EURUSD_vol)
-#external regressor dummy
-mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(dummy))
+#external regressor dummy MRO
+mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(ecb_action))
 mod2
 1-mod2$sigma2/var(df$EURUSD_vol)
 #external regressor
