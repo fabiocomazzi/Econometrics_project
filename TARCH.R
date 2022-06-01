@@ -357,27 +357,56 @@ plot(arch.fit@fitted, type = "l")
 ##############MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
 library(forecast)
 EURUSD = ts(df$EURUSD, frequency = 12, start=c(2004,10), end=c(2022,3))
-plot(diff(EURUSD), type = "l")
+plot(diff(log(EURUSD)), type = "l")
 acf(diff(EURUSD))
 pacf(diff(EURUSD))
-mod = auto.arima(EURUSD, d=1) #modello selezionato è arima (1,1,0)
+mod = auto.arima(log(EURUSD), d=1) #modello selezionato è arima (1,1,0)
+mod
+summary(lm(diff(log(EURUSD)) ~ c(tail(diff(log(EURUSD)),-1),0)))#la media non è significativa quindi la toglieremo
 
-summary(lm(diff(EURUSD) ~ c(tail(diff(EURUSD),-1),0)))
-#mod = arima(EURUSD, order=c(1,1,0))
 plot(EURUSD, type='l')
-lines(mod$fitted, col='green')
+lines(exp(mod$fitted), col='green')
 pacf(mod$residuals)
 
 ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
 ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
 ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
 dummy = as.numeric(as.logical(diff(df$MRO)))
-dummy = c(0,dummy)
+dummy.a1 = c(0, dummy[1:(length(dummy)-1)])
+dummy.l1 = c(tail(dummy, -1), 0)
 
 spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy)), 
-                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = TRUE))
+                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=diff(EURUSD))
-#fit = ugarchfit(spec=spec, data=mod$residuals)
+fit = ugarchfit(spec=spec, data=diff(log(EURUSD)))
+
 fit
-####Le decisioni di politica monetaria non sembrano influenzare la volatilità del cambio EURUSD
+####le decisioni di politica monetaria non sembrano avere un significativa influenza sulla volatilità della politica monetaria
+####unico effetto apprezzabile riguarda se c'è stato o meno un ritocco dei tassi MRO nel mese corrente p-value comunque basso
+
+plot(df$EURUSD_vol, type='l')
+acf(df$EURUSD_vol)
+pacf(df$EURUSD_vol)
+mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)])
+mod0
+1-mod0$sigma2/var(df$EURUSD_vol)
+#external regressor MRO
+mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)))
+mod1
+1-mod1$sigma2/var(df$EURUSD_vol)
+#external regressor dummy
+mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(dummy))
+mod2
+1-mod2$sigma2/var(df$EURUSD_vol)
+#external regressor
+
+acf(mod1$residuals)
+pacf(mod1$residuals)
+
+
+reg = dynlm(diff(EURUSD) ~ L(diff(EURUSD_vol),1) )
+summary(reg)
+plot(reg)
+
+acf(reg$residuals)
+pacf(reg$residuals)
