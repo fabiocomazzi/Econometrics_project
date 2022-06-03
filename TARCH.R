@@ -1,4 +1,6 @@
 
+setwd("~/GitHub/Econometrics_project")
+
 rm(list = ls())
 
 library("readxl")
@@ -6,8 +8,10 @@ library("lubridate")
 library("ggplot2")
 library("patchwork")
 library("olsrr")
+library("dynlm")
+library("car")
 
-# Import the dataset
+# Import pf the dataset
 
 df = read_excel("dataset.xlsx")
 df_1 = read.csv("MABMM301USM189S.csv")
@@ -34,6 +38,7 @@ d = as.numeric(d)
 df$inf_USA = d
 
 
+# Plot of all our time series
 
 p1 <- ggplot(df, aes(x=Data, y=EURUSD)) +
   geom_line() + 
@@ -66,15 +71,45 @@ p10 <- ggplot(df, aes(x=Data, y=inf_USA)) +
   geom_line() + 
   xlab("")
 
-p10
+
 p1+p2+p3+p4+p5+p6+p7+p8+p9+p10
 
 
-plot(df$inf_USA, type = "l")
+
+################################################################################
+################################################################################
+#
+# FIRST MODEL: Regression on I(0) variables
+#
+################################################################################
+################################################################################
+
+
+# We want to see if we can find a relationship between our I(0) variables and
+# the differences in exchange rate EUR/USD
+
 
 ################################################################################
 # UNIT ROOT TEST
 ################################################################################
+
+# First, we test whether our time series are I(1)
+
+
+# Before doing so, we introduce another time series:
+# Difference between interest rates in USA w.r.t. the
+# ones in EU
+
+df$yield_diff = df$yieldUSA_1y - df$yieldEU_1y
+
+
+p11 <- ggplot(df, aes(x=Data, y=yield_diff)) +
+  geom_line() + 
+  xlab("")
+
+p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+p11
+
+
 
 ############### ERS TEST
 
@@ -87,15 +122,20 @@ plot(df$inf_USA, type = "l")
 
 library(urca)
 
-summary(ur.ers(df$EURUSD, type="P-test", model="trend")) #non stat
-summary(ur.ers(df$M3, type="P-test", model="trend")) #non stat
-summary(ur.ers(df$HICP, type="P-test", model="trend")) #non stat
-summary(ur.ers(df$MRO, type="P-test", model="trend")) #non stat
-summary(ur.ers(df$yieldEU_1y, type="P-test", model="trend")) #non stat
-summary(ur.ers(df$ExtRes, type="P-test", model="trend")) #al 5% e al 10% è stat, non lo è all'1%
+summary(ur.ers(df$EURUSD, type="P-test", model="trend"))
+summary(ur.ers(df$M3, type="P-test", model="trend")) 
+summary(ur.ers(df$HICP, type="P-test", model="trend")) 
+summary(ur.ers(df$MRO, type="P-test", model="trend")) 
+summary(ur.ers(df$yieldEU_1y, type="P-test", model="trend")) 
+summary(ur.ers(df$ExtRes, type="P-test", model="trend")) #al 5% è stat
+summary(ur.ers(df$M3_USA, type="P-test", model="trend"))
+summary(ur.ers(df$inf_USA, type="P-test", model="trend"))
+summary(ur.ers(df$Petrol_USA, type="P-test", model="trend")) #al 5% è stat
+summary(ur.ers(df$yieldUSA_1y, type="P-test", model="trend"))
+summary(ur.ers(df$yield_diff, type="P-test", model="trend"))
 
 
-# Per i processi non stazionari consideriamo le time series delle differenze
+# We now create the first differences of our time series
 
 dEURUSD = diff(df$EURUSD)
 dM3 = diff(df$M3)
@@ -107,9 +147,10 @@ dM3_USA = diff(df$M3_USA)
 dyieldUSA = diff(df$yieldUSA_1y)
 dinf_USA = diff(df$inf_USA)
 dPetrol_USA = diff(df$Petrol_USA)
-yield_diff = df$yieldUSA_1y - df$yieldEU_1y
+dyield_diff = diff(df$yield_diff)
 
-# Inserisco le differenze nel dataset
+
+# We insert these new time series in the dataset
 
 df$dEURUSD = c(NA, dEURUSD)
 df$dM3 = c(NA, dM3)
@@ -121,12 +162,10 @@ df$dM3_USA = c(NA, dM3_USA)
 df$dyieldUSA = c(NA, dyieldUSA)
 df$dinf_USA = c(NA, dinf_USA)
 df$dPetrol_USA = c(NA, dPetrol_USA)
-
-df$yield_diff = yield_diff
-df$dyield_diff = c(NA, diff(df$yield_diff))
+df$dyield_diff = c(NA, dyield_diff)
 
 
-# Plottiamo le differenze
+# Plot of the differences
 
 p1 <- ggplot(df, aes(x=Data, y=dEURUSD)) +
   geom_line() + 
@@ -146,41 +185,42 @@ p5 <- ggplot(df, aes(x=Data, y=dyieldEU)) +
 p6 <- ggplot(df, aes(x=Data, y=dExtRes)) +
   geom_line() + 
   xlab("")
-#p7 <- ggplot(df, aes(x=Data, y=dRefOp)) +
-#  geom_line() + 
-#  xlab("")
-p8 <- ggplot(df, aes(x=Data, y=EURUSD_vol)) +
+p7 <- ggplot(df, aes(x=Data, y=dyieldUSA)) +
   geom_line() + 
   xlab("")
-
-p9 <- ggplot(df, aes(x=Data, y=yield_diff)) + 
-  geom_line() +
+p8 <- ggplot(df, aes(x=Data, y=dM3_USA)) +
+  geom_line() + 
   xlab("")
-
-p10 <- ggplot(df, aes(x=Data, y=dyield_diff)) + 
-  geom_line() +
+p9 <- ggplot(df, aes(x=Data, y=dPetrol_USA)) +
+  geom_line() + 
   xlab("")
-
-p11 <- ggplot(df, aes(x=Data, y=dinf_USA)) + 
-  geom_line() +
+p10 <- ggplot(df, aes(x=Data, y=dinf_USA)) +
+  geom_line() + 
+  xlab("")
+p11 <- ggplot(df, aes(x=Data, y=dyield_diff)) +
+  geom_line() + 
   xlab("")
 
 
 p1+p2+p3+p4+p5+p6+p8+p9+p10+p11
 
 
-# Calcolo l'ERS test
+
+# We calculate the ERS test on the differences
 
 summary(ur.ers(df$dEURUSD, type="P-test", model="trend"))
 summary(ur.ers(df$dM3, type="P-test", model="trend")) 
 summary(ur.ers(df$dHICP, type="P-test", model="trend")) 
 summary(ur.ers(df$dMRO, type="P-test", model="trend")) 
 summary(ur.ers(df$dyieldEU, type="P-test", model="trend")) 
-summary(ur.ers(df$dExtRes, type="P-test", model="trend")) 
-summary(ur.ers(df$dRefOp, type="P-test", model="trend")) 
+summary(ur.ers(df$dExtRes, type="P-test", model="trend"))
+summary(ur.ers(df$dM3_USA, type="P-test", model="trend"))
+summary(ur.ers(df$dinf_USA, type="P-test", model="trend"))
+summary(ur.ers(df$dPetrol_USA, type="P-test", model="trend"))
+summary(ur.ers(df$dyieldUSA, type="P-test", model="trend"))
+summary(ur.ers(df$dyield_diff, type="P-test", model="trend"))
 
-# Sono tutti stazionari all'1%
-
+# They are all stationary at 5% (and also at 1%)
 
 
 
@@ -204,27 +244,35 @@ adf.test(as.matrix(df$M3))
 adf.test(as.matrix(df$HICP))
 adf.test(as.matrix(df$MRO))
 adf.test(as.matrix(df$yieldEU_1y))
-adf.test(as.matrix(df$ExtRes)) # Con drift e trend con qualche lag rifiuto H0
-adf.test(as.matrix(df$M3_USA))
+adf.test(as.matrix(df$ExtRes)) # Borderline: with drift and trend for 5% it depends
+                               # on the lags I consider (at 5%)
 adf.test(as.matrix(df$yieldUSA_1y))
-adf.test(as.matrix(df$Petrol_USA))
+adf.test(as.matrix(df$M3_USA))
+adf.test(as.matrix(df$Petrol_USA)) # with 0, 4 and 5 lags it is stationary, with 1, 2, 3
+                                   # instead it is stationary (at 5%)
+adf.test(as.matrix(df$inf_USA))
+adf.test(as.matrix(df$yield_diff))
 
-# PROBLEMA: ExtRes, RefOp e EURUSD_vol sono stazionari: come possiamo imporre la cointegrazione?
-# SECONDO PROBLEMA: Stazionarietà dovrebbe implicare std costante, ma non mi sembra
 
 
-# Applichiamo il test alle first differences
+# We apply the test to the first differences
 
 adf.test(as.matrix(df$dEURUSD))
 adf.test(as.matrix(df$dM3))
 adf.test(as.matrix(df$dHICP))
 adf.test(as.matrix(df$dMRO))
 adf.test(as.matrix(df$dyieldEU))
-adf.test(as.matrix(df$dExtRes))
-adf.test(as.matrix(df$dM3_USA)) 
-adf.test(as.matrix(df$dyieldUSA)) 
+adf.test(as.matrix(df$dExtRes)) 
+adf.test(as.matrix(df$dyieldUSA))
+adf.test(as.matrix(df$dM3_USA))
+adf.test(as.matrix(df$dPetrol_USA))
+adf.test(as.matrix(df$dinf_USA))
+adf.test(as.matrix(df$dyield_diff))
 
-# Vengono tutti stazionari, ovviamente
+# They are all stationary => All the time series are I(1) 
+# (except, maybe, for ExtRes and Petrol)
+
+
 
 ###############################################################################
 #Siccome tutte le variabili sono I(1) la regressione sulle variabili originarie
@@ -232,64 +280,124 @@ adf.test(as.matrix(df$dyieldUSA))
 #serie differenziate
 
 
-reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) 
+                    + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+summary(reg)
+
+
+plot(reg)
+
+acf(reg$residuals)
+pacf(reg$residuals)
+shapiro.test(reg$residuals)
+
+
+#la regressione non è malaccio, R^2 del 28%, i residui sono normali, e non sembra esserci 
+# autocorrelazione quindi c'è consistenza
+# MRO e M3 non viene significativo quindi li scartiamo -> facciamo un test congiunto
+
+
+# Test H0: beta2 = 0 e beta4 = 0 vs H1: at least one of beta2 and beta4 != 0 (dM3 e dMRO)
+
+linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0), c(0,0,0,1,0,0,0)), c(0,0))
+
+# p-value: 0.3419 => we remove dM3 and dMRO
+
+
+reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
+                    + L(dPetrol_USA,1), data=df)
 summary(reg)
 
 acf(reg$residuals)
 pacf(reg$residuals)
 shapiro.test(reg$residuals)
-#la regressione non è malaccio, R^2 del 28%, i residui sono normali, e non sembra esserci autocorrelazione quindi c'è consistenza
-# MRO e M3 non viene significativo quindi li scartiamo
 
-reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
-summary(reg)
 
-acf(reg$residuals)
-pacf(reg$residuals)
-shapiro.test(reg$residuals)
+#Plot of dEURUSD and our regression
+
+plot(df$Data, c(0, dEURUSD), type = "l")
+lines(df$Data, c(0, fitted(reg)), col = "green")
+
+
+
 
 ################################################################################
-#Analizziamo ora le correlazioni di lungo termine
+################################################################################
+#
+# SECOND MODEL: VECM
+#
+################################################################################
+################################################################################
+
+
+# We want to find a long term relationship between exchange rate EUR/USD and our
+# time series.
+# Then, we exploit the residuals of the deriving VECM in order to estimate the 
+# exchange rate volatility through a GARCH (O QUALCOSA DI DIVERSO?) model.
+
+
+################################################################################
 
 library(vars)
 
-y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yieldEU_1y", "HICP", "ExtRes", "yieldUSA_1y", "Petrol_USA", "inf_USA")], type="const")
+y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yieldEU_1y", "HICP", "ExtRes", 
+                           "yieldUSA_1y", "Petrol_USA", "inf_USA")], type="const")
 nlags <- y.VAR.IC$selection
 nlags
 
-#Dice di usare due lag
+# We select two lags
 
 
-y.CA <- ca.jo(df[c("EURUSD", "M3", "yieldEU_1y", "HICP", "ExtRes", "yieldUSA_1y", "Petrol_USA", "inf_USA")], type="trace", ecdet = "const", spec="longrun", K=2)
+y.CA <- ca.jo(df[c("EURUSD", "M3", "yieldEU_1y", "HICP", "ExtRes", 
+                   "yieldUSA_1y", "Petrol_USA", "inf_USA")], 
+              type="trace", ecdet = "const", spec="longrun", K=2)
 summary(y.CA)
 
+
+# We have evidence for two cointegration relationships
+
 vecm<-cajorls(y.CA, r = 2)
+
+
+# We see the two cointegrating relationships
+
 vecm
 
+
+# We see our VECM
 
 summary(vecm$rlm)
 
 
 res = vecm$rlm$residuals[,1]
-res
 
 plot(res^2, type = "l")
 
 plot(res, type = "l")
 
-################consideriamo la differenza dei tassi tra europa e america
 
-y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yield_diff", "HICP", "ExtRes", "Petrol_USA", "inf_USA")], type="const")
+
+################ Now we consider the difference between EU and USD interest rates
+
+y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yield_diff", "HICP", 
+                           "ExtRes", "Petrol_USA", "inf_USA")], type="const")
 nlags <- y.VAR.IC$selection
 nlags
 
 #Dice di usare due lag
 
 
-y.CA <- ca.jo(df[c("EURUSD", "M3", "yield_diff", "HICP", "ExtRes", "Petrol_USA", "inf_USA")], type="trace", ecdet = "const", spec="longrun", K=2)
+y.CA <- ca.jo(df[c("EURUSD", "M3", "yield_diff", "HICP", 
+                   "ExtRes", "Petrol_USA", "inf_USA")], 
+              type="trace", ecdet = "const", spec="longrun", K=2)
+
 summary(y.CA)
 
+# There is only one cointegration relationship
+
 vecm<-cajorls(y.CA, r = 1)
+
+# Let's see the cointegration relationship
 vecm
 
 
@@ -301,23 +409,40 @@ res = vecm$rlm$residuals[,1]
 
 plot(res^2, type='l')
 
-shapiro.test(res)
+shapiro.test(res) 
+
+hist(res, breaks = 20)
+
+# non sono per niente normali -> leptokurtic -> vediamo se la varianza
+# varia nel tempo
+
+plot(res, type = "l")
+
+# It varies, so we could think about a ARCH/GARCH model to describe it
+
 acf(res^2)
 pacf(res^2)
 
-# le relazioni di cointegrazione sono 1 ed è super significativa per spiegare andamento tasso di cambio
-# le relazioni di short term significative sono invece riguardanti external reserve, prezzo petrolio, è inflazione usa
+acf(res)
+pacf(res)
+
+# le relazioni di cointegrazione sono 1 ed è super significativa per spiegare andamento tasso di cambio (perché è supersignificativa?)
+# le relazioni di short term significative sono invece riguardanti external reserve, prezzo petrolio, e inflazione usa
 # R^2 è uguale a 28.75% ma è paragonabile ai risultati di semplice regressione
 # inflazione EU invece non sembra particolarmente significativa
 
-#i residui di questo modello sono ben centrati, no autocorrelazione etc.
+#i residui di questo modello sono ben centrati, no autocorrelazione etc. (NON MI PARE)
 #usiamo la volatilità di questi residui per studiare la volatilità del tasso di cambio
 #è la nostra alternativa alla semplice volatilità del sliding windows
+
+
+# Plot of empirical volatility and our regressors
 
 plot(df$EURUSD_vol, type='l')
 lines(res^2, col = "red")
 
 df$EURUSD_vol_cointegration = c(NA,NA, res^2)
+
 
 ################################################################################
 # ACF E PACF
@@ -333,12 +458,21 @@ hist(res, breaks = 20) #leptokurtic
 
 shapiro.test(res) # rifiutiamo H0 al 5% => non è normale
 
+
 ################################################################################
-# Modelliamo la volatilità con 3 approcci:
+################################################################################
+# THIRD MODEL: VOLATILITY
+################################################################################
+################################################################################
+
+
+# Modellizziamo la volatilità con 3 approcci:
 # - volatilità intesa come volatilità mensile
 # - volatilità come i residui del nostro modello di cointegrazione
 # - modelliamo il tasso di interesse direttamente con un ARIMA in media e GARCH in varianza
 # l'idea è di vedere se politiche di aumento o diminuzione dei tassi possono influenzare la volatilità
+
+
 ################################################################################
 
 
@@ -358,9 +492,6 @@ df$ECB_MROaction = as.data.frame(dummy)
 
 ################################################################################
 
-
-
-library(dynlm)
 
 
 # Facciamo un test per vedere se i nostri residui hanno un ARCH effect (LM test)
@@ -383,12 +514,12 @@ summary(mod_arch)
 
 
 #########################################################
-# approccio 1: vediamo se a decisioni della banca centrale 
+# APPROCCIO 1: vediamo se a decisioni della banca centrale 
 # per abbassare o alzare tassi corrisponde volatilità maggiore
 # nel nostro modello di cointegrazione
 # Interpretazione: abbiamo un modello che spiega abbastanza bene il cambio 
 # ----> vediamo se decisioni di politica monetaria danno scossoni non previsti dal modello
-# modelliamo i residui come se fossere una serie temporale a media nulla
+# modellizziamo i residui come se fossero una serie temporale a media nulla
 # e ammettiamo un modello GARCH con regressori esterni
 
 library(rugarch)
@@ -432,14 +563,21 @@ fit@fit$fitted.values
 # 
 # plot(arch.fit@fitted, type = "l")
 
+
+
 ####################################################################
-#approccio 2: MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
+#APPROCCIO 2: MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
 
 library(forecast)
 EURUSD = ts(df$EURUSD, frequency = 12, start=c(2004,10), end=c(2022,3))
 plot(diff(log(EURUSD)), type = "l")
+
 acf(diff(EURUSD))
 pacf(diff(EURUSD))
+
+acf(diff(log(EURUSD)))
+pacf(diff(log(EURUSD)))
+
 mod = auto.arima(log(EURUSD), d=1) #modello selezionato è arima (1,1,0)
 mod
 summary(lm(diff(log(EURUSD)) ~ c(tail(diff(log(EURUSD)),-1),0)))#la media non è significativa quindi la toglieremo del modello
@@ -461,18 +599,20 @@ spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), ext
 fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
 
 fit
+
 ####le decisioni di politica monetaria non sembrano avere un significativa influenza sulla volatilità della politica monetaria
 ####unico effetto apprezzabile riguarda se c'è stato o meno un ritocco dei tassi MRO nel mese corrente ma c'è poca significatività
 
 ########################################################################
-# approccio 3: Modelliamo direttamente la volatilità mensile tramite modelli ARMA
+# APPROCCIO 3: Modellizziamo direttamente la volatilità mensile tramite modelli ARMA
 
 plot(df$EURUSD_vol, type='l')
 acf(df$EURUSD_vol)
 pacf(df$EURUSD_vol)
 mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)])
 mod0
-1-mod0$sigma2/var(df$EURUSD_vol)
+1-mod0$sigma2/var(df$EURUSD_vol) #che cos'è?
+
 #external regressor MRO
 mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)))
 mod1
@@ -487,7 +627,7 @@ acf(mod1$residuals)
 pacf(mod1$residuals)
 
 
-reg = dynlm(diff(EURUSD) ~ L(diff(EURUSD_vol),1) )
+reg = dynlm(diff(EURUSD) ~ L(diff(df$EURUSD_vol),1) )
 summary(reg)
 plot(reg)
 
