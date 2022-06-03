@@ -8,17 +8,15 @@ library("lubridate")
 library("ggplot2")
 library("patchwork")
 library("olsrr")
-<<<<<<< Updated upstream
 library("dynlm")
 library("car")
-=======
 library(forecast)
 library(urca)
 library(aTSA)
 library(vars)
 library(dynlm)
 library(rugarch)
->>>>>>> Stashed changes
+
 
 # Import pf the dataset
 
@@ -288,8 +286,6 @@ adf.test(as.matrix(df$dyield_diff))
 #serie differenziate
 
 
-<<<<<<< Updated upstream
-
 reg = dynlm(dEURUSD ~ L(dExtRes, 1) + L(dM3,1) + L(dMRO,1), data=df)
 summary(reg)
 
@@ -302,11 +298,10 @@ linearHypothesis(reg, rbind(c(0,0,1,0), c(0,0,0,1)), c(0,0))
 
 
 reg = dynlm(dEURUSD ~ L(dExtRes, 1), data=df)
-=======
+
 #reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
 reg = dynlm(dEURUSD ~ dM3 + dHICP + dMRO + dinf_USA + dyield_diff + dPetrol_USA, data=df)
 
->>>>>>> Stashed changes
 summary(reg)
 
 plot(reg)
@@ -317,9 +312,14 @@ shapiro.test(reg$residuals)
 
 
 # Try regression with all our I(0) time series
+k=1
+reg = dynlm(dEURUSD ~ L(dM3, k) + L(dHICP, k) + L(dMRO, k) + L(dinf_USA, k) 
+                    + L(dyield_diff, k) + L(dPetrol_USA, k) + L(dExtRes, k), data=df)
 
-reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) 
-                    + L(dyield_diff,1) + L(dPetrol_USA,1) + L(dExtRes, 1), data=df)
+
+#reg = lm(df$dEURUSD[(1+k):210] ~ tail(df$dM3,-k) + tail(df$dHICP,-k) + tail(df$dMRO,-k) + tail(df$dinf_USA,-k) 
+#        + tail(df$dyield_diff,-k) + tail(df$dPetrol_USA,-k) + tail(df$dExtRes,-k))
+
 summary(reg)
 
 
@@ -329,7 +329,6 @@ acf(reg$residuals)
 pacf(reg$residuals)
 shapiro.test(reg$residuals)
 
-<<<<<<< Updated upstream
 
 #la regressione non è malaccio, R^2 del 28%, i residui sono normali, e non sembra esserci 
 # autocorrelazione quindi c'è consistenza
@@ -345,11 +344,10 @@ linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
 
 reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
                     + L(dPetrol_USA,1) + L(dExtRes), data=df)
-=======
+
 #reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
 reg = dynlm(dEURUSD ~ dHICP + dinf_USA + dyield_diff + dPetrol_USA, data=df)
 
->>>>>>> Stashed changes
 summary(reg)
 
 acf(reg$residuals)
@@ -446,7 +444,9 @@ vecm
 
 
 summary(vecm$rlm)
-
+x11()
+plot(x=df$Data, y=df$EURUSD, type='l')
+lines(x=df$Data, y=df$EURUSD[2]+cumsum(vecm$rlm$fitted.values[,1]), col='green')
 
 res = vecm$rlm$residuals[,1]
 
