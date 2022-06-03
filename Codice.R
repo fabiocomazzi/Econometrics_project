@@ -8,6 +8,7 @@ library("lubridate")
 library("ggplot2")
 library("patchwork")
 library("olsrr")
+library("car")
 
 # Import the dataset
 
@@ -85,6 +86,7 @@ summary(reg)
 plot(df$Data, df$EURUSD_vol, type = "l")
 lines(df$Data, fitted(reg), col = "green")
 
+plot(reg)
 # La regressione con tutte le time series dà scarsi risultati, sicuramente perché ci sono time series
 # con alta collinearità
 

@@ -8,8 +8,17 @@ library("lubridate")
 library("ggplot2")
 library("patchwork")
 library("olsrr")
+<<<<<<< Updated upstream
 library("dynlm")
 library("car")
+=======
+library(forecast)
+library(urca)
+library(aTSA)
+library(vars)
+library(dynlm)
+library(rugarch)
+>>>>>>> Stashed changes
 
 # Import pf the dataset
 
@@ -120,7 +129,6 @@ p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+p11
 # Se la statistica è maggiore di un certo valore critico => non posso rifiutare H0, quindi 
 # non posso rifiutare la non stazionarità
 
-library(urca)
 
 summary(ur.ers(df$EURUSD, type="P-test", model="trend"))
 summary(ur.ers(df$M3, type="P-test", model="trend")) 
@@ -233,7 +241,7 @@ summary(ur.ers(df$dyield_diff, type="P-test", model="trend"))
 
 # pvalue alto => non possiamo rifiutare H0
 
-library(aTSA)
+
 
 
 # Prima bisogna scegliere che tipo di test effettuare in base a come sono strutturati i dati
@@ -280,6 +288,7 @@ adf.test(as.matrix(df$dyield_diff))
 #serie differenziate
 
 
+<<<<<<< Updated upstream
 
 reg = dynlm(dEURUSD ~ L(dExtRes, 1) + L(dM3,1) + L(dMRO,1), data=df)
 summary(reg)
@@ -293,6 +302,11 @@ linearHypothesis(reg, rbind(c(0,0,1,0), c(0,0,0,1)), c(0,0))
 
 
 reg = dynlm(dEURUSD ~ L(dExtRes, 1), data=df)
+=======
+#reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+reg = dynlm(dEURUSD ~ dM3 + dHICP + dMRO + dinf_USA + dyield_diff + dPetrol_USA, data=df)
+
+>>>>>>> Stashed changes
 summary(reg)
 
 plot(reg)
@@ -315,6 +329,7 @@ acf(reg$residuals)
 pacf(reg$residuals)
 shapiro.test(reg$residuals)
 
+<<<<<<< Updated upstream
 
 #la regressione non è malaccio, R^2 del 28%, i residui sono normali, e non sembra esserci 
 # autocorrelazione quindi c'è consistenza
@@ -330,6 +345,11 @@ linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
 
 reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
                     + L(dPetrol_USA,1) + L(dExtRes), data=df)
+=======
+#reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+reg = dynlm(dEURUSD ~ dHICP + dinf_USA + dyield_diff + dPetrol_USA, data=df)
+
+>>>>>>> Stashed changes
 summary(reg)
 
 acf(reg$residuals)
@@ -362,7 +382,7 @@ lines(df$Data, c(0, fitted(reg)), col = "green")
 
 ################################################################################
 
-library(vars)
+
 
 y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yieldEU_1y", "HICP", "ExtRes", 
                            "yieldUSA_1y", "Petrol_USA", "inf_USA")], type="const")
@@ -518,6 +538,12 @@ df$ECB_MROaction = as.data.frame(dummy)
 
 
 
+<<<<<<< Updated upstream
+=======
+
+
+
+>>>>>>> Stashed changes
 # Facciamo un test per vedere se i nostri residui hanno un ARCH effect (LM test)
 
 library(FinTS)
@@ -546,7 +572,7 @@ summary(mod_arch)
 # modellizziamo i residui come se fossero una serie temporale a media nulla
 # e ammettiamo un modello GARCH con regressori esterni
 
-library(rugarch)
+
 ecb_action = c(as.numeric( as.logical(diff(df$MRO))))
 
 #external_data = cbind(ecb_action, ecb_action.l1, ecb_action.l2, ecb_action.l3)
@@ -562,8 +588,8 @@ fit@fit$coef
 fit@fit$fitted.values
 
 # gli effetti del cambio dei tassi non si vedono minimamente nella varianza
-
-
+acf(res)
+pacf(res)
 
 # #tGARCH
 # 
@@ -592,7 +618,7 @@ fit@fit$fitted.values
 ####################################################################
 #APPROCCIO 2: MODELLIAMO TUTTO TRAMITE ARIMA E GARCH
 
-library(forecast)
+
 EURUSD = ts(df$EURUSD, frequency = 12, start=c(2004,10), end=c(2022,3))
 plot(diff(log(EURUSD)), type = "l")
 
@@ -613,7 +639,7 @@ pacf(mod$residuals)
 # ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
 # ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
 # ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
-# dummy = as.numeric(as.logical(diff(df$MRO)))
+dummy = as.numeric(as.logical(diff(df$MRO)))
 # dummy.a1 = c(0, dummy[1:(length(dummy)-1)])
 # dummy.l1 = c(tail(dummy, -1), 0)
 
@@ -621,7 +647,12 @@ spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), ext
                   distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
 
 fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
+fit
 
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy[1:208])), 
+                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
+
+fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
 fit
 
 ####le decisioni di politica monetaria non sembrano avere un significativa influenza sulla volatilità della politica monetaria
@@ -630,19 +661,28 @@ fit
 ########################################################################
 # APPROCCIO 3: Modellizziamo direttamente la volatilità mensile tramite modelli ARMA
 
+#una semplice regressione mostra che differenze nel tasso MRO sono correlate con aumento di volatilità 
+reg = dynlm( EURUSD_vol[2:210] ~ diff(MRO) + diff(ExtRes) + diff(M3), data=df)
+summary(reg)
+plot(reg)
+
+acf(reg$residuals)
+pacf(reg$residuals)
+#c'è tanta autocorrelazione, meglio tenerne conto e usare un modello ARMA
+
 plot(df$EURUSD_vol, type='l')
 acf(df$EURUSD_vol)
 pacf(df$EURUSD_vol)
-mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)])
+mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg=df$vix[2:210], d=0)
 mod0
 1-mod0$sigma2/var(df$EURUSD_vol) #che cos'è?
 
 #external regressor MRO
-mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)))
+mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)), d=0)
 mod1
 1-mod1$sigma2/var(df$EURUSD_vol)
 #external regressor dummy MRO
-mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(ecb_action))
+mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(ecb_action), d=0)
 mod2
 1-mod2$sigma2/var(df$EURUSD_vol)
 #external regressor
@@ -651,9 +691,58 @@ acf(mod1$residuals)
 pacf(mod1$residuals)
 
 
+<<<<<<< Updated upstream
 reg = dynlm(diff(EURUSD) ~ L(diff(df$EURUSD_vol),1) )
+=======
+#cambi di tassi nel MRO sono significativo. Tuttavia durante la crisi del 2008, mentre la volatilità sui mercati era alta,
+#la BCE ha abbassato repentinamente i tassi. Non è che tale correlazione è solo dovuta alla crisi?
+#può questa correlazione essere spiegata solo grazie al VIX?
+#(VIX è una misura implicità di volatilità sull'S&P 500)
+
+#Proviamo a tenere conto di questa cosa facendo prima una regressione sul vix (indice volatilità mercati finanziari)
+#vediamo poi se i residui di questo modello sono spiegabili da cambi nell MRO
+
+library(tidyverse)
+vix = read.csv("VIX_History.csv")
+vix$DATE = as.Date(vix$DATE)
+vix_monthly = vix %>% 
+  mutate(month = floor_date(DATE, "month")) %>%
+  group_by(month) %>%
+  summarize(avg = mean(CLOSE))
+vix_monthly = vix_monthly%>%filter(between(month, as.Date("2004-10-1"), as.Date("2022-3-1")))
+
+df$vix = vix_monthly$avg
+plot((df$EURUSD_vol-mean(df$EURUSD_vol))/sd(df$EURUSD_vol), type="l")
+lines((df$vix-mean(df$vix))/sd(df$vix), col="red")
+lines(df$MRO, col="green")
+
+regvix = lm(EURUSD_vol~ vix, data=df)
+summary(regvix)
+reg = dynlm( regvix$residuals[2:210] ~ + diff(MRO) + diff(ExtRes) + diff(M3), data=df)
+>>>>>>> Stashed changes
+summary(reg)
+plot(reg)
+
+reg = dynlm( EURUSD_vol[2:210] ~ vix[2:210] + diff(MRO) + diff(ExtRes) + diff(M3), data=df)
+summary(reg)
+
+acf(reg$residuals)
+pacf(reg$residuals)
+#vix e MRO spiegano in ugual misura la volatilità del cambio. la brusca discesa dei tassi
+#sembra comunque aver influenzato la volatilità del tasso in aggiunta alla volatilità sui mercati.
+
+#Se filtriamo la crisi del 2008, vediamo assenza di correlazione tra variazione di money supply, rieserve esterne e MRO
+#mentre la correlazione con il vix rimane significativa
+reg = dynlm( EURUSD_vol[70:210] ~ vix[70:210] + diff(MRO)[70:210] + diff(ExtRes)[70:210] + diff(M3)[70:210], data=df)
 summary(reg)
 plot(reg)
 
 acf(reg$residuals)
 pacf(reg$residuals)
+
+
+mod3 = auto.arima(df$EURUSD_vol[70:210], xreg = as.matrix(diff(df$MRO)[70:210]), d=0)
+mod3
+acf(mod3$residuals[1:(length(mod3$residuals)-1)])
+pacf(mod3$residuals[1:(length(mod3$residuals)-1)])
+plot(mod3)
