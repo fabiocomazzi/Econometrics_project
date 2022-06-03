@@ -280,8 +280,32 @@ adf.test(as.matrix(df$dyield_diff))
 #serie differenziate
 
 
+
+reg = dynlm(dEURUSD ~ L(dExtRes, 1) + L(dM3,1) + L(dMRO,1), data=df)
+summary(reg)
+
+
+# Test on dM3 and dMRO
+
+linearHypothesis(reg, rbind(c(0,0,1,0), c(0,0,0,1)), c(0,0))
+
+#p-value 0.8739: reject H0
+
+
+reg = dynlm(dEURUSD ~ L(dExtRes, 1), data=df)
+summary(reg)
+
+plot(reg)
+
+acf(reg$residuals)
+pacf(reg$residuals)
+shapiro.test(reg$residuals)
+
+
+# Try regression with all our I(0) time series
+
 reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) 
-                    + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
+                    + L(dyield_diff,1) + L(dPetrol_USA,1) + L(dExtRes, 1), data=df)
 summary(reg)
 
 
@@ -299,13 +323,13 @@ shapiro.test(reg$residuals)
 
 # Test H0: beta2 = 0 e beta4 = 0 vs H1: at least one of beta2 and beta4 != 0 (dM3 e dMRO)
 
-linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0), c(0,0,0,1,0,0,0)), c(0,0))
+linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
 
 # p-value: 0.3419 => we remove dM3 and dMRO
 
 
 reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
-                    + L(dPetrol_USA,1), data=df)
+                    + L(dPetrol_USA,1) + L(dExtRes), data=df)
 summary(reg)
 
 acf(reg$residuals)
