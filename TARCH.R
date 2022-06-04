@@ -286,7 +286,12 @@ adf.test(as.matrix(df$dyield_diff))
 #serie differenziate
 
 
+<<<<<<< Updated upstream
 reg = dynlm(dEURUSD ~ L(dExtRes, 1) + L(dM3,1) + L(dMRO,1), data=df)
+=======
+
+reg = dynlm(dEURUSD ~ L(ts(dExtRes), 1) + L(ts(dM3),1) + L(ts(dMRO),1), data=df)
+>>>>>>> Stashed changes
 summary(reg)
 
 
@@ -297,11 +302,15 @@ linearHypothesis(reg, rbind(c(0,0,1,0), c(0,0,0,1)), c(0,0))
 #p-value 0.8739: reject H0
 
 
+<<<<<<< Updated upstream
 reg = dynlm(dEURUSD ~ L(dExtRes, 1), data=df)
 
 #reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
 reg = dynlm(dEURUSD ~ dM3 + dHICP + dMRO + dinf_USA + dyield_diff + dPetrol_USA, data=df)
 
+=======
+reg = dynlm(dEURUSD ~ L(ts(dExtRes), 1), data=df)
+>>>>>>> Stashed changes
 summary(reg)
 
 plot(reg)
@@ -320,6 +329,11 @@ reg = dynlm(dEURUSD ~ L(dM3, k) + L(dHICP, k) + L(dMRO, k) + L(dinf_USA, k)
 #reg = lm(df$dEURUSD[(1+k):210] ~ tail(df$dM3,-k) + tail(df$dHICP,-k) + tail(df$dMRO,-k) + tail(df$dinf_USA,-k) 
 #        + tail(df$dyield_diff,-k) + tail(df$dPetrol_USA,-k) + tail(df$dExtRes,-k))
 
+<<<<<<< Updated upstream
+=======
+reg = dynlm(dEURUSD ~ L(ts(dM3),1) + L(ts(dHICP),1) + L(ts(dMRO),1) + L(ts(dinf_USA),1) 
+                    + L(ts(dyield_diff),1) + L(ts(dPetrol_USA),1) + L(ts(dExtRes), 1), data=df)
+>>>>>>> Stashed changes
 summary(reg)
 
 
@@ -342,13 +356,20 @@ linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
 # p-value: 0.3419 => we remove dM3 and dMRO
 
 
+<<<<<<< Updated upstream
 reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
                     + L(dPetrol_USA,1) + L(dExtRes), data=df)
 
 #reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
 reg = dynlm(dEURUSD ~ dHICP + dinf_USA + dyield_diff + dPetrol_USA, data=df)
 
+=======
+reg = dynlm(dEURUSD ~ L(ts(dHICP), 1) + L(ts(dinf_USA),1) + L(ts(dyield_diff),1) 
+                    + L(ts(dPetrol_USA),1) + L(ts(dExtRes), 1), data=df)
+>>>>>>> Stashed changes
 summary(reg)
+
+
 
 acf(reg$residuals)
 pacf(reg$residuals)
@@ -360,6 +381,17 @@ shapiro.test(reg$residuals)
 plot(df$Data, c(0, dEURUSD), type = "l")
 lines(df$Data, c(0, fitted(reg)), col = "green")
 
+
+################################################################################
+# Facciamo i due modelli senza lag
+
+reg = lm(dEURUSD ~ dExtRes, data=df)
+summary(reg)
+
+
+reg = lm(dEURUSD ~ dHICP + dinf_USA + dyield_diff 
+         + dPetrol_USA + dExtRes, data=df)
+summary(reg)
 
 
 
@@ -417,7 +449,9 @@ plot(res^2, type = "l")
 
 plot(res, type = "l")
 
+shapiro.test(res) 
 
+hist(res, breaks = 20)
 
 ################ Now we consider the difference between EU and USD interest rates
 
@@ -505,7 +539,9 @@ shapiro.test(res) # rifiutiamo H0 al 5% => non è normale
 
 ################################################################################
 ################################################################################
+#
 # THIRD MODEL: VOLATILITY
+#
 ################################################################################
 ################################################################################
 
@@ -557,7 +593,7 @@ length(res_adj)
 
 res_adj_sq = ts(res_adj^2)
 
-mod_arch = dynlm(res_adj_sq ~ L(res_adj_sq) + L(res_adj_sq, 2))
+mod_arch = dynlm(res_adj_sq ~ L(res_adj_sq, 1) + L(res_adj_sq, 2))
 summary(mod_arch)
 
 
