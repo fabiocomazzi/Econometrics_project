@@ -468,11 +468,16 @@ vecm
 summary(vecm$rlm)
 
 x11()
+<<<<<<< Updated upstream
 plot(x=df$Data, y=df$EURUSD, type='l', xlab = "Date", ylab = "Exchange Rate")
 lines(x=df$Data[3:210], y=df$EURUSD[2]+cumsum(vecm$rlm$fitted.values[,1]), col='red')
 legend(x = "topright", legend=c("dEURUSD", "Fitted Values"),
        col=c("black", "red"), lty = c(1, 1), cex=1.3)
 
+=======
+plot(x=df$Data, y=df$EURUSD, type='l')
+lines(x=df$Data[3:210], y=df$EURUSD[2]+cumsum(vecm$rlm$fitted.values[,1]), col='green')
+>>>>>>> Stashed changes
 
 res = vecm$rlm$residuals[,1]
 
@@ -568,22 +573,31 @@ df$ECB_MROaction = as.data.frame(dummy)
 ################################################################################
 
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
 # Facciamo un test per vedere se i nostri residui hanno un ARCH effect (LM test)
 
 library(FinTS)
-ArchTest(res, lag = 2, demean = TRUE) # con un lag non viene significativo, boh
-
+ArchTest(res, lag = 2, demean = TRUE) # usiamo due lag
+x11()
+plot(df$Data[3:210],res^2, type='l', xlab="date", ylab=" ", main="squared VECM residuals")
 
 # Altro modo per fare lo stesso test -> decido io il numero di lags
 
-res_adj = c(0,0,res)
-length(res_adj)
+#res_adj = c(0,0,res)
+#length(res_adj)
 
-res_adj_sq = ts(res_adj^2)
+#res_adj_sq = ts(res_adj^2)
 
+#mod_arch = dynlm(res_adj_sq ~ L(res_adj_sq) + L(res_adj_sq, 2))
+
+<<<<<<< Updated upstream
 mod_arch = dynlm(res_adj_sq ~ L(res_adj_sq, 1) + L(res_adj_sq, 2))
 summary(mod_arch)
+=======
+>>>>>>> Stashed changes
 
 
 
@@ -599,19 +613,33 @@ summary(mod_arch)
 
 
 ecb_action = c(as.numeric( as.logical(diff(df$MRO))))
-
 #external_data = cbind(ecb_action, ecb_action.l1, ecb_action.l2, ecb_action.l3)
-spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_action)), 
+#with MRO
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_action[2:209])), 
                   distribution.model="std", mean.model=list(armaOrder=c(0,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=res[1:length(res)])
+fit = ugarchfit(spec=spec, data=res)
+fit
+#with external reserve
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(df[2:209, c("dExtRes", "dMRO", "dM3")])), 
+                  distribution.model="norm", mean.model=list(armaOrder=c(0,0), include.mean = FALSE))
+
+fit = ugarchfit(spec=spec, data=res)
 fit
 
 
 fit@fit$coef
 
 fit@fit$fitted.values
+#final model for the conditional variance
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1)), 
+                  distribution.model="norm", mean.model=list(armaOrder=c(0,0), include.mean = FALSE))
 
+fit = ugarchfit(spec=spec, data=res)
+fit
+x11()
+plot(df$Data[3:210], res^2, type="l", xlab="Date", ylab=" ", main="square residuals and fitted variance of GARCH(1,1) model")
+lines(df$Data[3:210], fit@fit$var, col='red')
 # gli effetti del cambio dei tassi non si vedono minimamente nella varianza
 acf(res)
 pacf(res)
@@ -650,7 +678,9 @@ plot(diff(log(EURUSD)), type = "l")
 acf(diff(EURUSD))
 pacf(diff(EURUSD))
 
+x11()
 acf(diff(log(EURUSD)))
+x11()
 pacf(diff(log(EURUSD)))
 
 mod = auto.arima(log(EURUSD), d=1) #modello selezionato è arima (1,1,0)
@@ -661,31 +691,34 @@ plot(EURUSD, type='l')
 lines(exp(mod$fitted), col='green')
 pacf(mod$residuals)
 
-# ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
-# ecb_decisions.l1 = cbind(c(tail(diff(df$M3), -1), 0), c(tail(diff(df$MRO), -1), 0), c(tail(diff(df$ExtRes), -1), 0))
+ecb_decisions = cbind(diff(df$M3), diff(df$MRO), diff(df$ExtRes))
+ecb_decisions.l1 = cbind(diff(df$M3)[1:208], diff(df$MRO)[1:208], diff(df$ExtRes)[1:208])
 # ecb_decisions.l2 = cbind(c(tail(diff(df$M3), -2),0,0), c(tail(diff(df$MRO), -2), 0, 0), c(tail(diff(df$ExtRes), -2), 0, 0))
 dummy = as.numeric(as.logical(diff(df$MRO)))
 # dummy.a1 = c(0, dummy[1:(length(dummy)-1)])
 # dummy.l1 = c(tail(dummy, -1), 0)
 
-spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(tail(ecb_action, -1))), 
-                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(ecb_decisions[,1])), 
+                  distribution.model="norm", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
+fit = ugarchfit(spec=spec, data=diff(log(EURUSD)))
 fit
 
-spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy[1:208])), 
-                  distribution.model="std", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
+spec = ugarchspec(variance.model=list(model = "sGARCH", garchOrder = c(1,1), external.regressors = as.matrix(dummy)), 
+                  distribution.model="norm", mean.model=list(armaOrder=c(1,0), include.mean = FALSE))
 
-fit = ugarchfit(spec=spec, data=diff(log(EURUSD))[2:209])
+fit = ugarchfit(spec=spec, data=diff(log(EURUSD)))
 fit
-
+1 - var(fit@fit$residuals)/var(diff(log(EURUSD)))
+x11()
+plot(df$Data[2:210], fit@fit$var, type='l', xlab='date', ylab=' ', main="Conditional Variance")
+abline(v=df$Data[as.logical(dummy)], col='red')
 ####le decisioni di politica monetaria non sembrano avere un significativa influenza sulla volatilità della politica monetaria
 ####unico effetto apprezzabile riguarda se c'è stato o meno un ritocco dei tassi MRO nel mese corrente ma c'è poca significatività
 
 ########################################################################
 # APPROCCIO 3: Modellizziamo direttamente la volatilità mensile tramite modelli ARMA
-
+library(lmtest)
 #una semplice regressione mostra che differenze nel tasso MRO sono correlate con aumento di volatilità 
 reg = dynlm( EURUSD_vol[2:210] ~ diff(MRO) + diff(ExtRes) + diff(M3), data=df)
 summary(reg)
@@ -694,31 +727,35 @@ plot(reg)
 acf(reg$residuals)
 pacf(reg$residuals)
 #c'è tanta autocorrelazione, meglio tenerne conto e usare un modello ARMA
+df$dummy_MRO = c(NA,as.numeric(as.logical(diff(df$MRO))))
 
 plot(df$EURUSD_vol, type='l')
 acf(df$EURUSD_vol)
 pacf(df$EURUSD_vol)
-mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg=df$vix[2:210], d=0)
+mod0 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], d=0)
 mod0
-1-mod0$sigma2/var(df$EURUSD_vol) #che cos'è?
+1-mod0$sigma2/var(df$EURUSD_vol) #R^2
 
 #external regressor MRO
 mod1 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(diff(df$MRO)), d=0)
 mod1
-1-mod1$sigma2/var(df$EURUSD_vol)
+1-mod1$sigma2/var(df$EURUSD_vol) #R^2
 #external regressor dummy MRO
-mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(ecb_action), d=0)
+mod2 = auto.arima(df$EURUSD_vol[2:length(df$EURUSD_vol)], xreg = as.matrix(df[2:210,c("dummy_MRO")]), d=0)
 mod2
-1-mod2$sigma2/var(df$EURUSD_vol)
+1-mod2$sigma2/var(df$EURUSD_vol) #R^2
 #external regressor
+coeftest(mod2)
+acf(mod2$residuals)
+pacf(mod2$residuals)
 
-acf(mod1$residuals)
-pacf(mod1$residuals)
 
-
+<<<<<<< Updated upstream
 
 reg = dynlm(diff(EURUSD) ~ L(diff(df$EURUSD_vol),1) )
 
+=======
+>>>>>>> Stashed changes
 #cambi di tassi nel MRO sono significativo. Tuttavia durante la crisi del 2008, mentre la volatilità sui mercati era alta,
 #la BCE ha abbassato repentinamente i tassi. Non è che tale correlazione è solo dovuta alla crisi?
 #può questa correlazione essere spiegata solo grazie al VIX?
@@ -729,7 +766,7 @@ reg = dynlm(diff(EURUSD) ~ L(diff(df$EURUSD_vol),1) )
 
 library(tidyverse)
 vix = read.csv("VIX_History.csv")
-vix$DATE = as.Date(vix$DATE)
+vix$DATE = as.Date(vix$DATE, "%m/%d/%Y")
 vix_monthly = vix %>% 
   mutate(month = floor_date(DATE, "month")) %>%
   group_by(month) %>%
@@ -737,9 +774,11 @@ vix_monthly = vix %>%
 vix_monthly = vix_monthly%>%filter(between(month, as.Date("2004-10-1"), as.Date("2022-3-1")))
 
 df$vix = vix_monthly$avg
-plot((df$EURUSD_vol-mean(df$EURUSD_vol))/sd(df$EURUSD_vol), type="l")
-lines((df$vix-mean(df$vix))/sd(df$vix), col="red")
-lines(df$MRO, col="green")
+x11()
+plot(df$Data, (df$EURUSD_vol-mean(df$EURUSD_vol))/sd(df$EURUSD_vol), xlab="Date", ylab="Standardized Volatility", type="l")
+lines(df$Data, (df$vix-mean(df$vix))/sd(df$vix), col="red")
+lines(df$Data, df$MRO, col="green")
+legend(x="topright", col=c("black", "red", "green"), lty=c(1,1,1), cex=0.5 ,legend=c("EURUSD monthly volatility (std)", "VIX (std)", "MRO"))
 
 regvix = lm(EURUSD_vol~ vix, data=df)
 summary(regvix)
@@ -756,18 +795,22 @@ pacf(reg$residuals)
 #vix e MRO spiegano in ugual misura la volatilità del cambio. la brusca discesa dei tassi
 #sembra comunque aver influenzato la volatilità del tasso in aggiunta alla volatilità sui mercati.
 
-#Se filtriamo la crisi del 2008, vediamo assenza di correlazione tra variazione di money supply, rieserve esterne e MRO
-#mentre la correlazione con il vix rimane significativa
-reg = dynlm( EURUSD_vol[70:210] ~ vix[70:210] + diff(MRO)[70:210] + diff(ExtRes)[70:210] + diff(M3)[70:210], data=df)
+#fittiamo un modello ARMA con le variabili significative 
+k=1
+reg = dynlm( EURUSD_vol[k:210] ~ vix[k:210] + dummy_MRO[k:210] , data=df)
 summary(reg)
 plot(reg)
 
+x11()
 acf(reg$residuals)
 pacf(reg$residuals)
 
-
-mod3 = auto.arima(df$EURUSD_vol[70:210], xreg = as.matrix(diff(df$MRO)[70:210]), d=0)
+k=2
+mod3 = Arima(df$EURUSD_vol[k:210], xreg= as.matrix(df[k:210, c( "vix", "dummy_MRO")]), order=c(5,0,0))
+#mod3 = auto.arima(df$EURUSD_vol[k:210], xreg = as.matrix(df[k:210, c( "vix", "dMRO")]))
 mod3
-acf(mod3$residuals[1:(length(mod3$residuals)-1)])
-pacf(mod3$residuals[1:(length(mod3$residuals)-1)])
+coeftest(mod3)
+1 - mod3$sigma2/var(df$EURUSD_vol)
+acf(mod3$residuals)
+pacf(mod3$residuals)
 plot(mod3)
