@@ -20,6 +20,7 @@ library(rugarch)
 
 # Import pf the dataset
 
+
 df = read_excel("dataset.xlsx")
 df_1 = read.csv("MABMM301USM189S.csv")
 df$M3_USA = df_1$MABMM301USM189S
@@ -27,7 +28,7 @@ df_1 = read.csv("DGS1.csv")
 df$yieldUSA_1y = df_1$DGS1
 df_1 = read.csv("DCOILWTICO.csv")
 df_1 <- head(df_1, -1) 
-df$Petrol_USA = df_1$DCOILWTICO
+df$Oil_price = df_1$DCOILWTICO
 inf_df = read.table("inf_rate.txt", sep = "")
 
 inf_rate = inf_df[2:(length(inf_df)-1)]
@@ -47,39 +48,39 @@ df$inf_USA = d
 
 # Plot of all our time series
 
-p1 <- ggplot(df, aes(x=Data, y=EURUSD)) +
+p1 <- ggplot(df, aes(x=Data, y=EURUSD)) + ggtitle("EURUSD") +
   geom_line() + 
-  xlab("")
-p2 <- ggplot(df, aes(x=Data, y=M3)) +
+  ylab("Exchange Rate") + xlab("Date")
+p2 <- ggplot(df, aes(x=Data, y=M3)) + ggtitle("M3") +
   geom_line() + 
-  xlab("")
-p3 <- ggplot(df, aes(x=Data, y=HICP)) +
+  ylab("Trillion Euros") + xlab("Date")
+p3 <- ggplot(df, aes(x=Data, y=HICP)) + ggtitle("HICP") +
   geom_line() + 
-  xlab("")
-p4 <- ggplot(df, aes(x=Data, y=MRO)) +
+  ylab("%") + xlab("Date")
+p4 <- ggplot(df, aes(x=Data, y=MRO)) + ggtitle("MRO") +
   geom_line() + 
-  xlab("")
-p5 <- ggplot(df, aes(x=Data, y=yieldEU_1y)) +
+  ylab("%") + xlab("Date")
+p5 <- ggplot(df, aes(x=Data, y=yieldEU_1y)) + ggtitle("yieldEU_1y") +
   geom_line() + 
-  xlab("")
-p6 <- ggplot(df, aes(x=Data, y=ExtRes)) +
+  ylab("%") + xlab("Date")
+p6 <- ggplot(df, aes(x=Data, y=ExtRes)) + ggtitle("ExtRes") +
   geom_line() + 
-  xlab("")
-p7 <- ggplot(df, aes(x=Data, y=yieldUSA_1y)) +
+  ylab("Billion Dollars") + xlab("Date")
+p7 <- ggplot(df, aes(x=Data, y=yieldUSA_1y)) + ggtitle("yieldUSA_1y") +
   geom_line() + 
-  xlab("")
-p8 <- ggplot(df, aes(x=Data, y=M3_USA)) +
+  ylab("%") + xlab("Date")
+#p8 <- ggplot(df, aes(x=Data, y=M3_USA)) + ggtitle("M3_USA") +
+#  geom_line() + 
+#  ylab("Dollars") + xlab("Date")
+p9 <- ggplot(df, aes(x=Data, y=Oil_price)) + ggtitle("Oil_price") +
   geom_line() + 
-  xlab("")
-p9 <- ggplot(df, aes(x=Data, y=Petrol_USA)) +
+  ylab("Dollars per barrel") + xlab("Date")
+p10 <- ggplot(df, aes(x=Data, y=inf_USA)) + ggtitle("inf_USA") +
   geom_line() + 
-  xlab("")
-p10 <- ggplot(df, aes(x=Data, y=inf_USA)) +
-  geom_line() + 
-  xlab("")
+  ylab("%") + xlab("Date")
 
 
-p1+p2+p3+p4+p5+p6+p7+p8+p9+p10
+p1+p2+p3+p4+p5+p6+p7+p9+p10
 
 
 
@@ -110,11 +111,12 @@ p1+p2+p3+p4+p5+p6+p7+p8+p9+p10
 df$yield_diff = df$yieldUSA_1y - df$yieldEU_1y
 
 
-p11 <- ggplot(df, aes(x=Data, y=yield_diff)) +
+p11 <- ggplot(df, aes(x=Data, y=yield_diff)) + ggtitle("yield_diff") +
   geom_line() + 
-  xlab("")
+  ylab("%") + xlab("Date")
 
-p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+p11
+x11()
+p1+p2+p3+p4+p5+p6+p7+p9+p10+p11
 
 
 
@@ -128,17 +130,17 @@ p1+p2+p3+p4+p5+p6+p7+p8+p9+p10+p11
 # non posso rifiutare la non stazionarità
 
 
-summary(ur.ers(df$EURUSD, type="P-test", model="trend"))
-summary(ur.ers(df$M3, type="P-test", model="trend")) 
-summary(ur.ers(df$HICP, type="P-test", model="trend")) 
-summary(ur.ers(df$MRO, type="P-test", model="trend")) 
-summary(ur.ers(df$yieldEU_1y, type="P-test", model="trend")) 
-summary(ur.ers(df$ExtRes, type="P-test", model="trend")) #al 5% è stat
-summary(ur.ers(df$M3_USA, type="P-test", model="trend"))
-summary(ur.ers(df$inf_USA, type="P-test", model="trend"))
-summary(ur.ers(df$Petrol_USA, type="P-test", model="trend")) #al 5% è stat
-summary(ur.ers(df$yieldUSA_1y, type="P-test", model="trend"))
-summary(ur.ers(df$yield_diff, type="P-test", model="trend"))
+summary(ur.ers(df$EURUSD, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$M3, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$HICP, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$MRO, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$yieldEU_1y, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$ExtRes, type="P-test", model="trend", lag.max = 8)) #al 5% è stat
+summary(ur.ers(df$M3_USA, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$inf_USA, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$Oil_price, type="P-test", model="trend", lag.max = 5)) #al 5% è stat
+summary(ur.ers(df$yieldUSA_1y, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$yield_diff, type="P-test", model="trend", lag.max = 5))
 
 
 # We now create the first differences of our time series
@@ -152,7 +154,7 @@ dExtRes = diff(df$ExtRes)
 dM3_USA = diff(df$M3_USA)
 dyieldUSA = diff(df$yieldUSA_1y)
 dinf_USA = diff(df$inf_USA)
-dPetrol_USA = diff(df$Petrol_USA)
+dOil_price = diff(df$Oil_price)
 dyield_diff = diff(df$yield_diff)
 
 
@@ -167,64 +169,65 @@ df$dExtRes = c(NA, dExtRes)
 df$dM3_USA = c(NA, dM3_USA)
 df$dyieldUSA = c(NA, dyieldUSA)
 df$dinf_USA = c(NA, dinf_USA)
-df$dPetrol_USA = c(NA, dPetrol_USA)
+df$dOil_price = c(NA, dOil_price)
 df$dyield_diff = c(NA, dyield_diff)
 
 
 # Plot of the differences
 
-p1 <- ggplot(df, aes(x=Data, y=dEURUSD)) +
+p1 <- ggplot(df, aes(x=Data, y=dEURUSD)) + ggtitle("dEURUSD") +
   geom_line() + 
-  xlab("")
-p2 <- ggplot(df, aes(x=Data, y=dM3)) +
+  ylab("Exchange Rate") + xlab("Date")
+p2 <- ggplot(df, aes(x=Data, y=dM3)) + ggtitle("dM3") +
   geom_line() + 
-  xlab("")
-p3 <- ggplot(df, aes(x=Data, y=dHICP)) +
+  ylab("Trillion Euros") + xlab("Date")
+p3 <- ggplot(df, aes(x=Data, y=dHICP)) + ggtitle("dHICP") +
   geom_line() + 
-  xlab("")
-p4 <- ggplot(df, aes(x=Data, y=dMRO)) +
+  ylab("%") + xlab("Date")
+p4 <- ggplot(df, aes(x=Data, y=dMRO)) + ggtitle("dMRO") +
   geom_line() + 
-  xlab("")
-p5 <- ggplot(df, aes(x=Data, y=dyieldEU)) +
+  ylab("%") + xlab("Date")
+p5 <- ggplot(df, aes(x=Data, y=dyieldEU)) + ggtitle("dyieldEU_1y") +
   geom_line() + 
-  xlab("")
-p6 <- ggplot(df, aes(x=Data, y=dExtRes)) +
+  ylab("%") + xlab("Date")
+p6 <- ggplot(df, aes(x=Data, y=dExtRes)) + ggtitle("dExtRes") +
   geom_line() + 
-  xlab("")
-p7 <- ggplot(df, aes(x=Data, y=dyieldUSA)) +
+  ylab("Billion Dollars") + xlab("Date")
+p7 <- ggplot(df, aes(x=Data, y=dyieldUSA)) + ggtitle("yieldUSA_1y") +
   geom_line() + 
-  xlab("")
-p8 <- ggplot(df, aes(x=Data, y=dM3_USA)) +
+  ylab("%") + xlab("Date")
+#p8 <- ggplot(df, aes(x=Data, y=dM3_USA)) + ggtitle("dM3_USA") +
+#  geom_line() + 
+#  ylab("Dollars") + xlab("Date")
+p9 <- ggplot(df, aes(x=Data, y=dOil_price)) + ggtitle("dOil_price") +
   geom_line() + 
-  xlab("")
-p9 <- ggplot(df, aes(x=Data, y=dPetrol_USA)) +
+  ylab("Dollars per barrel") + xlab("Date")
+p10 <- ggplot(df, aes(x=Data, y=dinf_USA)) + ggtitle("dinf_USA") +
   geom_line() + 
-  xlab("")
-p10 <- ggplot(df, aes(x=Data, y=dinf_USA)) +
+  ylab("%") + xlab("Date")
+p11 <- ggplot(df, aes(x=Data, y=dyield_diff)) + ggtitle("dyield_diff") +
   geom_line() + 
-  xlab("")
-p11 <- ggplot(df, aes(x=Data, y=dyield_diff)) +
-  geom_line() + 
-  xlab("")
+  ylab("%") + xlab("Date")
 
 
-p1+p2+p3+p4+p5+p6+p8+p9+p10+p11
+x11()
+p1+p2+p3+p4+p5+p6+p7+p9+p10+p11
 
 
 
 # We calculate the ERS test on the differences
 
-summary(ur.ers(df$dEURUSD, type="P-test", model="trend"))
-summary(ur.ers(df$dM3, type="P-test", model="trend")) 
-summary(ur.ers(df$dHICP, type="P-test", model="trend")) 
-summary(ur.ers(df$dMRO, type="P-test", model="trend")) 
-summary(ur.ers(df$dyieldEU, type="P-test", model="trend")) 
-summary(ur.ers(df$dExtRes, type="P-test", model="trend"))
-summary(ur.ers(df$dM3_USA, type="P-test", model="trend"))
-summary(ur.ers(df$dinf_USA, type="P-test", model="trend"))
-summary(ur.ers(df$dPetrol_USA, type="P-test", model="trend"))
-summary(ur.ers(df$dyieldUSA, type="P-test", model="trend"))
-summary(ur.ers(df$dyield_diff, type="P-test", model="trend"))
+summary(ur.ers(df$dEURUSD, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dM3, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$dHICP, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$dMRO, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$dyieldEU, type="P-test", model="trend", lag.max = 5)) 
+summary(ur.ers(df$dExtRes, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dM3_USA, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dinf_USA, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dOil_price, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dyieldUSA, type="P-test", model="trend", lag.max = 5))
+summary(ur.ers(df$dyield_diff, type="P-test", model="trend", lag.max = 5))
 
 # They are all stationary at 5% (and also at 1%)
 
@@ -245,35 +248,35 @@ summary(ur.ers(df$dyield_diff, type="P-test", model="trend"))
 # Prima bisogna scegliere che tipo di test effettuare in base a come sono strutturati i dati
 # Se no intercept e no trend, intercept e no trend o intercept e trend
 
-adf.test(as.matrix(df$EURUSD))
-adf.test(as.matrix(df$M3))
-adf.test(as.matrix(df$HICP))
-adf.test(as.matrix(df$MRO))
-adf.test(as.matrix(df$yieldEU_1y))
-adf.test(as.matrix(df$ExtRes)) # Borderline: with drift and trend for 5% it depends
+adf.test(as.matrix(df$EURUSD), nlag = 5)
+adf.test(as.matrix(df$M3), nlag = 5)
+adf.test(as.matrix(df$HICP), nlag = 5)
+adf.test(as.matrix(df$MRO), nlag = 5)
+adf.test(as.matrix(df$yieldEU_1y), nlag = 5)
+adf.test(as.matrix(df$ExtRes), nlag = 5) # Borderline: with drift and trend for 5% it depends
                                # on the lags I consider (at 5%)
-adf.test(as.matrix(df$yieldUSA_1y))
-adf.test(as.matrix(df$M3_USA))
-adf.test(as.matrix(df$Petrol_USA)) # with 0, 4 and 5 lags it is stationary, with 1, 2, 3
+adf.test(as.matrix(df$yieldUSA_1y), nlag = 5)
+adf.test(as.matrix(df$M3_USA), nlag = 5)
+adf.test(as.matrix(df$Oil_price), nlag = 5) # with 0, 4 and 5 lags it is stationary, with 1, 2, 3
                                    # instead it is stationary (at 5%)
-adf.test(as.matrix(df$inf_USA))
-adf.test(as.matrix(df$yield_diff))
+adf.test(as.matrix(df$inf_USA), nlag = 5)
+adf.test(as.matrix(df$yield_diff), nlag = 5)
 
 
 
 # We apply the test to the first differences
 
-adf.test(as.matrix(df$dEURUSD))
-adf.test(as.matrix(df$dM3))
-adf.test(as.matrix(df$dHICP))
-adf.test(as.matrix(df$dMRO))
-adf.test(as.matrix(df$dyieldEU))
-adf.test(as.matrix(df$dExtRes)) 
-adf.test(as.matrix(df$dyieldUSA))
-adf.test(as.matrix(df$dM3_USA))
-adf.test(as.matrix(df$dPetrol_USA))
-adf.test(as.matrix(df$dinf_USA))
-adf.test(as.matrix(df$dyield_diff))
+adf.test(as.matrix(df$dEURUSD), nlag = 5)
+adf.test(as.matrix(df$dM3), nlag = 5)
+adf.test(as.matrix(df$dHICP), nlag = 5)
+adf.test(as.matrix(df$dMRO), nlag = 5)
+adf.test(as.matrix(df$dyieldEU), nlag = 5)
+adf.test(as.matrix(df$dExtRes), nlag = 5) 
+adf.test(as.matrix(df$dyieldUSA), nlag = 5)
+adf.test(as.matrix(df$dM3_USA), nlag = 5)
+adf.test(as.matrix(df$dOil_price), nlag = 5)
+adf.test(as.matrix(df$dinf_USA), nlag = 5)
+adf.test(as.matrix(df$dyield_diff), nlag = 5)
 
 # They are all stationary => All the time series are I(1) 
 # (except, maybe, for ExtRes and Petrol)
@@ -286,12 +289,31 @@ adf.test(as.matrix(df$dyield_diff))
 #serie differenziate
 
 
-<<<<<<< Updated upstream
-reg = dynlm(dEURUSD ~ L(dExtRes, 1) + L(dM3,1) + L(dMRO,1), data=df)
-=======
+################################################################################
+# Facciamo i due modelli senza lag
+
+
+reg = lm(dEURUSD ~ dM3 + dHICP + dMRO + dinf_USA + dyield_diff 
+         + dOil_price + dExtRes, data=df)
+summary(reg)
+
+
+linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
+
+
+reg = lm(dEURUSD ~ dHICP + dinf_USA + dyield_diff 
+         + dOil_price + dExtRes, data=df)
+summary(reg)
+
+x11()
+plot(df$Data, c(0, dEURUSD), type = "l", ylab = "", xlab = "Date")
+lines(df$Data, c(0, fitted(reg)), col = "red")
+legend(x = "topright", legend=c("dEURUSD", "Fitted Values"),
+       col=c("black", "red"), lty = c(1, 1), cex=1.3)
+################################################################################
+
 
 reg = dynlm(dEURUSD ~ L(ts(dExtRes), 1) + L(ts(dM3),1) + L(ts(dMRO),1), data=df)
->>>>>>> Stashed changes
 summary(reg)
 
 
@@ -302,15 +324,7 @@ linearHypothesis(reg, rbind(c(0,0,1,0), c(0,0,0,1)), c(0,0))
 #p-value 0.8739: reject H0
 
 
-<<<<<<< Updated upstream
-reg = dynlm(dEURUSD ~ L(dExtRes, 1), data=df)
-
-#reg = dynlm(dEURUSD ~ L(dM3,1) + L(dHICP,1) + L(dMRO,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
-reg = dynlm(dEURUSD ~ dM3 + dHICP + dMRO + dinf_USA + dyield_diff + dPetrol_USA, data=df)
-
-=======
 reg = dynlm(dEURUSD ~ L(ts(dExtRes), 1), data=df)
->>>>>>> Stashed changes
 summary(reg)
 
 plot(reg)
@@ -321,19 +335,9 @@ shapiro.test(reg$residuals)
 
 
 # Try regression with all our I(0) time series
-k=1
-reg = dynlm(dEURUSD ~ L(dM3, k) + L(dHICP, k) + L(dMRO, k) + L(dinf_USA, k) 
-                    + L(dyield_diff, k) + L(dPetrol_USA, k) + L(dExtRes, k), data=df)
 
-
-#reg = lm(df$dEURUSD[(1+k):210] ~ tail(df$dM3,-k) + tail(df$dHICP,-k) + tail(df$dMRO,-k) + tail(df$dinf_USA,-k) 
-#        + tail(df$dyield_diff,-k) + tail(df$dPetrol_USA,-k) + tail(df$dExtRes,-k))
-
-<<<<<<< Updated upstream
-=======
 reg = dynlm(dEURUSD ~ L(ts(dM3),1) + L(ts(dHICP),1) + L(ts(dMRO),1) + L(ts(dinf_USA),1) 
-                    + L(ts(dyield_diff),1) + L(ts(dPetrol_USA),1) + L(ts(dExtRes), 1), data=df)
->>>>>>> Stashed changes
+                    + L(ts(dyield_diff),1) + L(ts(dOil_price),1) + L(ts(dExtRes), 1), data=df)
 summary(reg)
 
 
@@ -356,20 +360,16 @@ linearHypothesis(reg, rbind(c(0,1,0,0,0,0,0,0), c(0,0,0,1,0,0,0,0)), c(0,0))
 # p-value: 0.3419 => we remove dM3 and dMRO
 
 
-<<<<<<< Updated upstream
-reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) 
-                    + L(dPetrol_USA,1) + L(dExtRes), data=df)
-
-#reg = dynlm(dEURUSD ~ L(dHICP,1) + L(dinf_USA,1) + L(dyield_diff,1) + L(dPetrol_USA,1), data=df)
-reg = dynlm(dEURUSD ~ dHICP + dinf_USA + dyield_diff + dPetrol_USA, data=df)
-
-=======
 reg = dynlm(dEURUSD ~ L(ts(dHICP), 1) + L(ts(dinf_USA),1) + L(ts(dyield_diff),1) 
-                    + L(ts(dPetrol_USA),1) + L(ts(dExtRes), 1), data=df)
->>>>>>> Stashed changes
+                    + L(ts(dOil_price),1) + L(ts(dExtRes), 1), data=df)
 summary(reg)
 
 
+x11()
+plot(df$Data, c(0,dEURUSD), type = "l", ylab = "", xlab = "Date")
+lines(df$Data, c(0, 0, reg$fitted.values), col = "red")
+legend(x = "topright", legend=c("dEURUSD", "Fitted Values"),
+       col=c("black", "red"), lty = c(1, 1), cex=1.3)
 
 acf(reg$residuals)
 pacf(reg$residuals)
@@ -380,18 +380,6 @@ shapiro.test(reg$residuals)
 
 plot(df$Data, c(0, dEURUSD), type = "l")
 lines(df$Data, c(0, fitted(reg)), col = "green")
-
-
-################################################################################
-# Facciamo i due modelli senza lag
-
-reg = lm(dEURUSD ~ dExtRes, data=df)
-summary(reg)
-
-
-reg = lm(dEURUSD ~ dHICP + dinf_USA + dyield_diff 
-         + dPetrol_USA + dExtRes, data=df)
-summary(reg)
 
 
 
@@ -456,7 +444,7 @@ hist(res, breaks = 20)
 ################ Now we consider the difference between EU and USD interest rates
 
 y.VAR.IC <- VARselect(df[c("EURUSD", "M3", "yield_diff", "HICP", 
-                           "ExtRes", "Petrol_USA", "inf_USA")], type="const")
+                           "ExtRes", "Oil_price", "inf_USA")], type="const")
 nlags <- y.VAR.IC$selection
 nlags
 
@@ -464,7 +452,7 @@ nlags
 
 
 y.CA <- ca.jo(df[c("EURUSD", "M3", "yield_diff", "HICP", 
-                   "ExtRes", "Petrol_USA", "inf_USA")], 
+                   "ExtRes", "Oil_price", "inf_USA")], 
               type="trace", ecdet = "const", spec="longrun", K=2)
 
 summary(y.CA)
@@ -478,16 +466,23 @@ vecm
 
 
 summary(vecm$rlm)
+
 x11()
-plot(x=df$Data, y=df$EURUSD, type='l')
-lines(x=df$Data, y=df$EURUSD[2]+cumsum(vecm$rlm$fitted.values[,1]), col='green')
+plot(x=df$Data, y=df$EURUSD, type='l', xlab = "Date", ylab = "Exchange Rate")
+lines(x=df$Data[3:210], y=df$EURUSD[2]+cumsum(vecm$rlm$fitted.values[,1]), col='red')
+legend(x = "topright", legend=c("dEURUSD", "Fitted Values"),
+       col=c("black", "red"), lty = c(1, 1), cex=1.3)
+
 
 res = vecm$rlm$residuals[,1]
 
 
+
 plot(res^2, type='l')
 
+
 shapiro.test(res) 
+
 
 hist(res, breaks = 20)
 
@@ -509,7 +504,7 @@ pacf(res)
 # R^2 è uguale a 28.75% ma è paragonabile ai risultati di semplice regressione
 # inflazione EU invece non sembra particolarmente significativa
 
-#i residui di questo modello sono ben centrati, no autocorrelazione etc. (NON MI PARE)
+#i residui di questo modello sono ben centrati, no autocorrelazione etc.
 #usiamo la volatilità di questi residui per studiare la volatilità del tasso di cambio
 #è la nostra alternativa alla semplice volatilità del sliding windows
 
@@ -574,12 +569,6 @@ df$ECB_MROaction = as.data.frame(dummy)
 
 
 
-<<<<<<< Updated upstream
-=======
-
-
-
->>>>>>> Stashed changes
 # Facciamo un test per vedere se i nostri residui hanno un ARCH effect (LM test)
 
 library(FinTS)
@@ -727,9 +716,9 @@ acf(mod1$residuals)
 pacf(mod1$residuals)
 
 
-<<<<<<< Updated upstream
+
 reg = dynlm(diff(EURUSD) ~ L(diff(df$EURUSD_vol),1) )
-=======
+
 #cambi di tassi nel MRO sono significativo. Tuttavia durante la crisi del 2008, mentre la volatilità sui mercati era alta,
 #la BCE ha abbassato repentinamente i tassi. Non è che tale correlazione è solo dovuta alla crisi?
 #può questa correlazione essere spiegata solo grazie al VIX?
@@ -755,7 +744,7 @@ lines(df$MRO, col="green")
 regvix = lm(EURUSD_vol~ vix, data=df)
 summary(regvix)
 reg = dynlm( regvix$residuals[2:210] ~ + diff(MRO) + diff(ExtRes) + diff(M3), data=df)
->>>>>>> Stashed changes
+
 summary(reg)
 plot(reg)
 
